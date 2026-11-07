@@ -700,6 +700,8 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
 const addDays=n=>{const d=new Date();d.setDate(d.getDate()+n);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+const range=(a,b)=>Array.from({length:b-a+1},(_,i)=>a+i);
+function groupOf(k,n){const a=Math.floor((k-1)/3)*3+1;return {a,end:k%3===0||k===n};}
 const uid=()=>Math.random().toString(36).slice(2,10);
 
 /* ---------- motifs ---------- */
@@ -983,8 +985,8 @@ SCREENS.gate=()=>{
   const p=me();const s=BY[S.p.sid];const x=sp(p,s.id);const n=s.v.length;prefetch(s.id);
   let steps='';
   for(let k=1;k<=n;k++){const st=k<=x.stage?'done':k===x.stage+1?'cur':'lock';
-    const t=k===1?'Verset 1':k===n?`Toute la sourate`:`Versets 1 à ${k}`;
-    const d=k===1?'Apprends le premier verset':k===n?`Les ${n} versets d'affilée`:`Ajoute le verset ${k} et enchaîne`;
+    const g=groupOf(k,n);const t=`Verset ${k}`;
+    const d=k===n&&n>3?`Puis les versets ${g.a} à ${k}, puis toute la sourate`:g.end?(g.a<k?`Puis les versets ${g.a} à ${k} ensemble`:'Écoute et récite'):'Écoute et récite ce verset';
     steps+=`<button class="step ${st}" data-stage="${k}" ${st==='lock'?'disabled':''}><span class="ico">${st==='done'?'✓':st==='cur'?'▶':'🔒'}</span><span><span class="t">${t}</span><br><span class="d">${d}</span></span><span class="go">${st==='done'?'Rejouer':st==='cur'?'+5 ⭐':''}</span></button>`;}
   const cu=x.understood?'done':x.stage>=n?'cur':'lock', cq=x.done?'done':x.understood?'cur':'lock';
   const el=view(topbar(p,{back:true})+`<div class="gate-head"><div class="arname">${esc(s.ar)}</div><h2 class="title-gold">${esc(s.fr)}</h2><div class="mean">« ${esc(s.mean)} » · ${n} versets</div></div>
@@ -1056,9 +1058,9 @@ SCREENS.player=()=>{
 /* ----- séance d'apprentissage (étape k = versets 1..k) ----- */
 SCREENS.lesson=()=>{
   const p=me();const s=BY[S.p.sid];const k=S.p.k;const x=sp(p,s.id);const n=s.v.length;
-  if(!S.p.steps){S.p.steps=[{t:'listen'}];if(k>1)S.p.steps.push({t:'chain'});S.p.steps.push({t:'final'});S.p.i=0;S.p.fr=true;}
+  if(!S.p.steps){const g=groupOf(k,n);S.p.steps=[{t:'listen'},{t:'final',list:[k]}];if(g.end&&g.a<k)S.p.steps.push({t:'final',list:range(g.a,k)});if(k===n&&n>3)S.p.steps.push({t:'final',list:range(1,n)});S.p.i=0;S.p.fr=true;}
   const L=S.p, step=L.steps[L.i], practice=k<=x.stage;
-  const label=k===1?'Verset 1':k===n?'Toute la sourate':`Versets 1 à ${k}`;
+  const label=`Verset ${k}`;
   const head=`<div class="topbar"><button class="iconbtn" data-quit aria-label="Quitter">✕</button><div class="progress"><i style="width:${(L.i/L.steps.length*100).toFixed(0)}%"></i></div><span class="coin">${coinSvg()}<span>${p.points}</span></span></div><div class="stage-label">${esc(s.fr)} · ${label}${practice?' · entraînement':''}</div>`;
   const next=()=>{stopAudio();L.i++;render();};
   const frT=`<button class="toggle ${L.fr?'on':''}" data-fr>🇫🇷 Traduction</button>`, slowT=`<button class="toggle ${AU.rate<1?'on':''}" data-slow>🐢 Plus lent</button>`;
@@ -1109,13 +1111,15 @@ SCREENS.lesson=()=>{
     return;
   }
   if(step.t==='chain'||step.t==='final'){
-    const fin=step.t==='final';const list=Array.from({length:k},(_,i)=>i+1);
+    const fin=step.t==='final';const list=step.list||range(1,k);const lastStep=L.i===L.steps.length-1;
+    const what=list.length===1?`le verset ${list[0]}`:list.length===n?'toute la sourate':`les versets ${list[0]} à ${list[list.length-1]} ensemble`;
+    const finTitle=list.length===n&&n>1?'Le grand défi !':list.length>1?'On assemble !':`Récite le verset ${list[0]}`;
     const finalOK=()=>{if(practice||!DB.data.settings.parentCheck){finishStage();return;}
       const kp=keypad(4,v=>{if(v===PARENT_CODE){closeOverlay();finishStage();return true;}return false;},'Montre à un parent','Récite devant papa ou maman. Le parent tape son code pour valider.');
       overlay(`<div class="panel">${kp.html}<button class="btn ghost block" data-x style="margin-top:14px">Je m'entraîne encore</button></div>`,o=>{kp.bind(o);on(o,'[data-x]','click',closeOverlay);});};
     if(MIC&&!fin&&!L.reveal){micStep(list,`<div class="inst">Récite les versets 1 à ${k} à voix haute<small>Le premier mot de chaque verset est affiché. Touche le micro, récite tout, puis « J'ai fini ».</small></div>`,`<div class="chain">${list.map(v=>`<div class="vline" data-v="${v}">${verseBlock(s,v,3,{})}</div>`).join('')}</div>`,()=>{chime('ok');next();});return;}
-    if(MIC&&fin&&!L.reveal){micStep(list,`<div class="inst">${k===n?'Le grand défi !':'Le défi'}<small>Récite ${k===1?'le verset':`les versets 1 à ${k}`} de mémoire, sans regarder.</small></div>`,`<div class="rounds" style="gap:16px;margin:14px 0">${list.map(v=>`<span style="width:56px;height:56px;position:relative;display:inline-block">${numBadge(v).replace('class="num"','style="width:56px;height:56px"')}</span>`).join('')}</div>`,finalOK);return;}
-    const ins=fin?`<div class="inst">${k===n?'Le grand défi !':'Le défi'}<small>Récite ${k===1?'le verset':`les versets 1 à ${k}`} de mémoire, sans regarder.</small></div>`
+    if(MIC&&fin&&!L.reveal){micStep(list,`<div class="inst">${finTitle}<small>Récite ${what} de mémoire, sans regarder.</small></div>`,`<div class="rounds" style="gap:16px;margin:14px 0">${list.map(v=>`<span style="width:56px;height:56px;position:relative;display:inline-block">${numBadge(v).replace('class="num"','style="width:56px;height:56px"')}</span>`).join('')}</div>`,lastStep?finalOK:()=>{chime('ok');next();});return;}
+    const ins=fin?`<div class="inst">${finTitle}<small>Récite ${what} de mémoire, sans regarder.</small></div>`
       :`<div class="inst">Récite les versets 1 à ${k}<small>Seul le premier mot de chaque verset est affiché.</small></div>`;
     const body=fin&&!L.reveal?`<div class="rounds" style="gap:16px;margin:20px 0">${list.map(v=>`<span style="width:56px;height:56px;position:relative;display:inline-block">${numBadge(v).replace('class="num"','style="width:56px;height:56px"')}</span>`).join('')}</div><div style="text-align:center;font-size:4rem">🤫</div>`
       :`<div class="chain">${list.map(v=>`<div class="vline" data-v="${v}">${verseBlock(s,v,L.reveal?0:3,{})}</div>`).join('')}</div>`;
@@ -1124,8 +1128,8 @@ SCREENS.lesson=()=>{
     bindToggles(el);bindPeek(el);
     const hl=v=>el.querySelectorAll('.vline').forEach(d=>{const a=+d.dataset.v===v;d.classList.toggle('playing',a);if(a)d.scrollIntoView({block:'center',behavior:'smooth'});});
     on(el,'[data-check]','click',()=>{L.reveal=true;render();setTimeout(()=>{const e2=app.firstElementChild;const h2=v=>e2.querySelectorAll('.vline').forEach(d=>{const a=+d.dataset.v===v;d.classList.toggle('playing',a);if(a)d.scrollIntoView({block:'center',behavior:'smooth'});});playList(s.id,list,h2);},50);});
-    on(el,'[data-no]','click',()=>{L.reveal=false;stopAudio();if(fin){L.i=0;toast('On réécoute 3 fois, puis tu réessaies.');}render();});
-    on(el,'[data-yes]','click',()=>{L.reveal=false;stopAudio();if(!fin){chime('ok');next();return;}finalOK();});
+    on(el,'[data-no]','click',()=>{L.reveal=false;stopAudio();if(fin&&list.length===1){L.i=0;toast('On réécoute 3 fois, puis tu réessaies.');}else toast('Réécoute les versets, puis réessaie.');render();});
+    on(el,'[data-yes]','click',()=>{L.reveal=false;stopAudio();if(!fin||!lastStep){chime('ok');next();return;}finalOK();});
     return;
   }
   function micStep(list,insHTML,cardHTML,onPass){
@@ -1136,7 +1140,7 @@ SCREENS.lesson=()=>{
         <div class="scorebar"><i style="width:${pct}%" class="${pass?'ok':''}"></i><span>${pct} %</span></div>
         ${coloredLines(s,list,R.ok)}
         ${R.heard?`<div class="heard">J'ai entendu : <span class="ar">${esc(R.heard)}</span></div>`:''}
-        ${pass?`<button class="btn turq block" data-pass>Continuer ➜</button>`:`<div class="rate"><button class="btn" data-listen>🎧 Écouter</button><button class="btn turq" data-retry>🎤 Réessayer</button></div><button class="btn ghost block" data-relearn>↺ Réécouter 3 fois</button>`}`,'lesson');
+        ${pass?`<button class="btn turq block" data-pass>Continuer ➜</button>`:`<div class="rate"><button class="btn" data-listen>🎧 Écouter</button><button class="btn turq" data-retry>🎤 Réessayer</button></div>${list.length===1?`<button class="btn ghost block" data-relearn>↺ Réécouter 3 fois</button>`:''}`}`,'lesson');
       bindToggles(el);
       if(pass){chime('win');confetti(60);}else chime('no');
       on(el,'[data-pass]','click',()=>{L.mic=null;onPass();});
@@ -1172,7 +1176,7 @@ SCREENS.lesson=()=>{
     if(k===n&&first){overlay(`<div class="paper"><div style="font-size:3.4rem">🏆</div><h2 class="title-gold" style="filter:none;color:#9a5a12">Sourate apprise !</h2><p>Tu connais <b>${esc(s.fr)}</b> par cœur. Maintenant, découvre ce qu'elle veut dire.</p><div class="bigcoin" style="color:#9a5a12">${coinSvg()} +15</div><button class="btn turq block" data-c>📜 Comprendre la sourate</button><button class="btn ghost block" data-g style="color:#2a1636">Plus tard</button></div>`,
       o=>{on(o,'[data-c]','click',()=>{S.screen='cards';S.p={sid:s.id,i:0};render();});on(o,'[data-g]','click',()=>{closeOverlay();back();});});return;}
     overlay(`<div class="paper"><div style="font-size:3rem">✨</div><h2 class="title-gold" style="filter:none;color:#9a5a12">${first?`Verset ${k} validé !`:'Bien joué !'}</h2>${first?`<div class="bigcoin" style="color:#9a5a12">${coinSvg()} +5</div>`:'<p>Super entraînement.</p>'}
-      ${first&&k<n?`<button class="btn turq block" data-n>Étape suivante : versets 1 à ${k+1} ➜</button>`:''}<button class="btn ghost block" data-g style="color:#2a1636">Retour à la porte</button></div>`,
+      ${first&&k<n?`<button class="btn turq block" data-n>Verset suivant : verset ${k+1} ➜</button>`:''}<button class="btn ghost block" data-g style="color:#2a1636">Retour à la porte</button></div>`,
       o=>{on(o,'[data-n]','click',()=>{S.screen='lesson';S.p={sid:s.id,k:k+1};render();});on(o,'[data-g]','click',()=>{closeOverlay();back();});});
   }
 };
