@@ -321,6 +321,10 @@ canvas#fx{position:fixed;inset:0;z-index:70;pointer-events:none}
 .scorebar i.ok{background:linear-gradient(90deg,#4fe0d3,#3cc98f)}
 .scorebar span{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--display);font-size:1.1rem}
 
+.trophy{font-size:4.4rem;line-height:1;display:inline-block;animation:trophy 1.4s cubic-bezier(.2,1.6,.4,1) both,wig 2.4s ease-in-out 1.4s infinite;filter:drop-shadow(0 0 18px rgba(244,197,66,.8))}
+@keyframes trophy{0%{transform:scale(0) rotate(-30deg)}60%{transform:scale(1.35) rotate(8deg)}100%{transform:scale(1) rotate(0)}}
+@keyframes wig{0%,100%{transform:rotate(0)}25%{transform:rotate(-7deg) scale(1.05)}75%{transform:rotate(7deg) scale(1.05)}}
+
 </style></head><body>
 <div id="sky" aria-hidden="true"></div>
 <div id="app"></div>
@@ -740,7 +744,7 @@ function palaceSvg(){
 /* ---------- données ---------- */
 const LS_KEY='palais-sourates-v1';
 const DB={data:null,ref:null,writing:false,pending:false,timer:null,cloud:false};
-function blank(){return {v:1,profiles:[],settings:{parentCheck:!window.WEB_BUILD,showAr:true,showPh:true,showFr:true,micLevel:0.85},updatedAt:0};}
+function blank(){return {v:1,profiles:[],settings:{sound:true,voice:true,parentCheck:!window.WEB_BUILD,showAr:true,showPh:true,showFr:true,micLevel:0.85},updatedAt:0};}
 function migrate(d){d=Object.assign(blank(),d||{});d.settings=Object.assign(blank().settings,d.settings||{});d.profiles=(d.profiles||[]).map(p=>Object.assign({points:0,earned:0,owned:[],surahs:{},streak:{last:'',n:0},av:{...AV.DEFAULT}},p));return d;}
 function loadLocal(){try{const r=localStorage.getItem(LS_KEY);if(r)return JSON.parse(r);}catch(e){}return null;}
 DB.data=migrate(loadLocal());
@@ -805,8 +809,38 @@ const DUR=window.DURATIONS||{};
 const dur=(sid,v)=>DUR[`${sid}_${v}`]||4;
 
 /* ---------- petits sons (synthèse) ---------- */
-let ACX=null;function fxCtx(){if(!ACX){const C=window.AudioContext||window.webkitAudioContext;if(C)ACX=new C();}if(ACX&&ACX.state==='suspended')ACX.resume();return ACX;}
-function chime(kind='ok'){try{const c=fxCtx();if(!c)return;const notes={ok:[880,1320],tap:[660],win:[523,659,784,1047,1319],coin:[1568,2093],no:[300,220]}[kind]||[880];notes.forEach((f,i)=>{const o=c.createOscillator(),g=c.createGain();o.type=kind==='no'?'triangle':'sine';o.frequency.value=f;const t=c.currentTime+i*(kind==='win'?.12:.09);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.18,t+.02);g.gain.exponentialRampToValueAtTime(.001,t+.5);o.connect(g).connect(c.destination);o.start(t);o.stop(t+.55);});}catch(e){}}
+let ACX=null,MASTER=null,NOISE=null;
+function fxCtx(){if(!ACX){const C=window.AudioContext||window.webkitAudioContext;if(C){ACX=new C();const comp=ACX.createDynamicsCompressor();MASTER=ACX.createGain();MASTER.gain.value=.9;MASTER.connect(comp);comp.connect(ACX.destination);}}if(ACX&&ACX.state==='suspended')ACX.resume();return ACX;}
+function tone(f,t,d,o={}){const {type='sine',vol=.2,att=.005,glide=0}=o;const os=ACX.createOscillator(),g=ACX.createGain();os.type=type;os.frequency.setValueAtTime(f,t);if(glide)os.frequency.exponentialRampToValueAtTime(glide,t+d);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+att);g.gain.exponentialRampToValueAtTime(.0001,t+d);os.connect(g);g.connect(MASTER);os.start(t);os.stop(t+d+.05);}
+function bell(f,t,v=.16){tone(f,t,1.1,{vol:v});tone(f*2,t,.55,{vol:v*.35});tone(f*3.01,t,.28,{vol:v*.12});}
+function pluck(f,t,v=.15){tone(f,t,.7,{type:'triangle',vol:v});tone(f*2,t,.3,{vol:v*.45});tone(f*1.004,t,.45,{type:'sawtooth',vol:v*.07});}
+function doum(t,v=.55){tone(150,t,.4,{vol:v,glide:55});}
+function tek(t,v=.22){if(!NOISE){NOISE=ACX.createBuffer(1,ACX.sampleRate*.2|0,ACX.sampleRate);const d=NOISE.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}const s=ACX.createBufferSource();s.buffer=NOISE;const f=ACX.createBiquadFilter();f.type='highpass';f.frequency.value=2800;const g=ACX.createGain();g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+.09);s.connect(f);f.connect(g);g.connect(MASTER);s.start(t);s.stop(t+.12);tone(820,t,.05,{type:'triangle',vol:v*.35});}
+function sparkle(t,n=8,v=.04){for(let i=0;i<n;i++)tone(2000+Math.random()*2600,t+i*.045,.16,{vol:v});}
+const HIJAZ=[293.66,311.13,369.99,392,440,466.16,523.25,587.33];
+function sfx(kind){
+  if(DB.data.settings.sound===false)return;
+  try{const c=fxCtx();if(!c)return;const t=c.currentTime+.03;
+    switch(kind){
+      case 'tap':tone(700,t,.05,{type:'triangle',vol:.05});break;
+      case 'soft':bell(1046.5,t,.09);break;
+      case 'good':bell(783.99,t);bell(1174.66,t+.11);bell(1567.98,t+.22,.1);sparkle(t+.28,6);break;
+      case 'bad':tone(440,t,.2,{type:'triangle',vol:.26,glide:370});tone(349.23,t+.19,.42,{type:'triangle',vol:.24,glide:293.66});tone(880,t,.15,{vol:.05});break;
+      case 'coin':tone(987.77,t,.08,{type:'square',vol:.1});tone(1318.5,t+.08,.45,{type:'square',vol:.1});sparkle(t+.12,8,.06);break;
+      case 'stage':doum(t);tek(t+.16);tek(t+.24);doum(t+.32);[523.25,659.25,783.99,1046.5].forEach((f,i)=>bell(f,t+.05+i*.09,.13));tone(987.77,t+.45,.08,{type:'square',vol:.05});tone(1318.5,t+.53,.45,{type:'square',vol:.05});sparkle(t+.55,10);break;
+      case 'sourate':{const b=.15;doum(t);tek(t+2*b);tek(t+3*b);doum(t+4*b);tek(t+6*b);
+        HIJAZ.forEach((f,i)=>pluck(f,t+.15+i*.075));[587.33,523.25,466.16,440].forEach((f,i)=>pluck(f,t+.8+i*.08,.12));pluck(440,t+1.15,.13);pluck(587.33,t+1.3,.16);
+        doum(t+1.05,.6);tek(t+1.2);tek(t+1.28);doum(t+1.36,.65);
+        [293.66,369.99,440,587.33,739.99,880,1174.66].forEach((f,i)=>bell(f,t+1.45+i*.035,.1));
+        for(let i=0;i<16;i++)tone(1800+Math.random()*3200,t+1.5+i*.07,.28,{vol:.03});break;}
+    }
+  }catch(e){}
+}
+function chime(k){sfx({ok:'good',win:'stage',no:'bad',tap:'tap',coin:'coin'}[k]||k);}
+const PRAISE=['Bravo !','Excellent !','Super !','Magnifique !','Très bien !','Tu es un champion !','Waouh, bravo !'];
+const ENCOURAGE=['Presque ! Essaie encore.','Pas grave, on réessaie !','Tu y es presque !','Courage, recommence !'];
+function say(txt,delay=450){if(DB.data.settings.voice===false||!window.speechSynthesis)return;setTimeout(()=>{try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(txt);u.lang='fr-FR';u.rate=1.05;u.pitch=1.25;const v=speechSynthesis.getVoices().find(x=>/^fr/i.test(x.lang));if(v)u.voice=v;speechSynthesis.speak(u);}catch(e){}},delay);}
+const pick=a=>a[Math.random()*a.length|0];
 
 /* ---------- effets ---------- */
 function confetti(n=140){
@@ -1142,7 +1176,7 @@ SCREENS.lesson=()=>{
         ${R.heard?`<div class="heard">J'ai entendu : <span class="ar">${esc(R.heard)}</span></div>`:''}
         ${pass?`<button class="btn turq block" data-pass>Continuer ➜</button>`:`<div class="rate"><button class="btn" data-listen>🎧 Écouter</button><button class="btn turq" data-retry>🎤 Réessayer</button></div>${list.length===1?`<button class="btn ghost block" data-relearn>↺ Réécouter 3 fois</button>`:''}`}`,'lesson');
       bindToggles(el);
-      if(pass){chime('win');confetti(60);}else chime('no');
+      if(pass){sfx('good');say(pick(PRAISE));confetti(70);}else{sfx('bad');say(pick(ENCOURAGE));}
       on(el,'[data-pass]','click',()=>{L.mic=null;onPass();});
       on(el,'[data-retry]','click',()=>{L.mic={st:'idle'};render();});
       on(el,'[data-relearn]','click',()=>{L.mic=null;L.i=0;render();});
@@ -1172,10 +1206,10 @@ SCREENS.lesson=()=>{
   function finishStage(){
     const first=k>x.stage;markDay(p);
     if(first){x.stage=k;addPoints(p,5);if(k===n){addPoints(p,10);x.srs={box:1,due:addDays(1)};}}
-    save();confetti(k===n?220:120);chime(k===n?'win':'coin');
-    if(k===n&&first){overlay(`<div class="paper"><div style="font-size:3.4rem">🏆</div><h2 class="title-gold" style="filter:none;color:#9a5a12">Sourate apprise !</h2><p>Tu connais <b>${esc(s.fr)}</b> par cœur. Maintenant, découvre ce qu'elle veut dire.</p><div class="bigcoin" style="color:#9a5a12">${coinSvg()} +15</div><button class="btn turq block" data-c>📜 Comprendre la sourate</button><button class="btn ghost block" data-g style="color:#2a1636">Plus tard</button></div>`,
+    save();confetti(k===n?220:120);if(k===n){sfx('sourate');say('Félicitations ! Tu connais toute la sourate par cœur !',2000);setTimeout(()=>confetti(160),900);}else{sfx('stage');say(pick(PRAISE)+' Cinq points de plus !',900);}
+    if(k===n&&first){overlay(`<div class="paper"><div class="trophy">🏆</div><h2 class="title-gold" style="filter:none;color:#9a5a12">Sourate apprise !</h2><p>Tu connais <b>${esc(s.fr)}</b> par cœur. Maintenant, découvre ce qu'elle veut dire.</p><div class="bigcoin" style="color:#9a5a12">${coinSvg()} +15</div><button class="btn turq block" data-c>📜 Comprendre la sourate</button><button class="btn ghost block" data-g style="color:#2a1636">Plus tard</button></div>`,
       o=>{on(o,'[data-c]','click',()=>{S.screen='cards';S.p={sid:s.id,i:0};render();});on(o,'[data-g]','click',()=>{closeOverlay();back();});});return;}
-    overlay(`<div class="paper"><div style="font-size:3rem">✨</div><h2 class="title-gold" style="filter:none;color:#9a5a12">${first?`Verset ${k} validé !`:'Bien joué !'}</h2>${first?`<div class="bigcoin" style="color:#9a5a12">${coinSvg()} +5</div>`:'<p>Super entraînement.</p>'}
+    overlay(`<div class="paper"><div class="trophy" style="font-size:3rem">✨</div><h2 class="title-gold" style="filter:none;color:#9a5a12">${first?`Verset ${k} validé !`:'Bien joué !'}</h2>${first?`<div class="bigcoin" style="color:#9a5a12">${coinSvg()} +5</div>`:'<p>Super entraînement.</p>'}
       ${first&&k<n?`<button class="btn turq block" data-n>Verset suivant : verset ${k+1} ➜</button>`:''}<button class="btn ghost block" data-g style="color:#2a1636">Retour à la porte</button></div>`,
       o=>{on(o,'[data-n]','click',()=>{S.screen='lesson';S.p={sid:s.id,k:k+1};render();});on(o,'[data-g]','click',()=>{closeOverlay();back();});});
   }
@@ -1214,9 +1248,9 @@ SCREENS.quiz=()=>{
     const sc=Q.res.filter(Boolean).length, pass=sc>=8, first=pass&&!x.done;
     x.quiz=Math.max(x.quiz||0,sc);if(pass){x.done=true;if(!x.srs)x.srs={box:1,due:addDays(1)};markDay(p);}save();
     const nx=SURAHS[s.idx+1];
-    if(pass){confetti(240);chime('win');}else chime('no');
+    if(pass){confetti(240);setTimeout(()=>confetti(180),800);sfx('sourate');say(`Bravo ! ${sc} sur 10. Sourate terminée !`,2000);}else{sfx('bad');say(`${sc} sur 10. Presque ! Relis les cartes et réessaie.`);}
     view(`<div class="stack" style="align-items:center;text-align:center;margin-top:20px">
-      <div style="font-size:4.4rem">${pass?'🏆':'💪'}</div><h2 class="title-gold" style="font-size:2.6rem">${sc} / 10</h2>
+      <div class="${pass?'trophy':''}" style="font-size:4.4rem">${pass?'🏆':'💪'}</div><h2 class="title-gold" style="font-size:2.6rem">${sc} / 10</h2>
       <div class="paper" style="width:100%;box-sizing:border-box">${pass?`<h3 style="font-size:1.7rem;color:#9a5a12">${first?'Sourate terminée !':'Encore réussi !'}</h3><p>${first?(nx?`Tu as appris, compris et réussi <b>${esc(s.fr)}</b>. La porte de <b>${esc(nx.fr)}</b> est ouverte !`:'Tu as terminé tout le chemin. Quel voyage !'):'Tu connais bien cette sourate.'}</p>`
         :`<h3 style="font-size:1.7rem;color:#9a5a12">Presque !</h3><p>Il faut 8 bonnes réponses. Relis les cartes, puis réessaie : tu vas y arriver.</p>`}</div>
       ${pass?`<button class="btn turq block" data-map>${nx&&first?`🛤️ Vers ${esc(nx.fr)}`:'🛤️ Retour au chemin'}</button>`:`<button class="btn turq block" data-again>↻ Réessayer le quiz</button><button class="btn ghost block" data-cards>📜 Relire les cartes</button>`}</div>`);
@@ -1231,7 +1265,7 @@ SCREENS.quiz=()=>{
     <div class="paper qcard"><div class="qtext">${esc(q.q)}</div></div>
     <div class="opts">${q.opts.map((o,j)=>{let c='';if(Q.pick!==null){if(o===q.good)c='ok';else if(j===Q.pick)c='ko';}return `<button class="opt ${c}" data-o="${j}" ${Q.pick!==null?'disabled':''}><span class="l">${'ABCD'[j]}</span>${esc(o)}</button>`;}).join('')}</div>
     ${Q.pick!==null?`<div class="explain"><b>${q.opts[Q.pick]===q.good?'Bravo ! ':'Pas tout à fait. '}</b>${esc(q.e)}</div><button class="btn turq block" data-nq>${Q.i===9?'Voir mon score':'Question suivante ➜'}</button>`:''}`,'lesson');
-  on(el,'[data-o]','click',(e,b)=>{Q.pick=+b.dataset.o;const ok=q.opts[Q.pick]===q.good;Q.res[Q.i]=ok;chime(ok?'ok':'no');render();});
+  on(el,'[data-o]','click',(e,b)=>{Q.pick=+b.dataset.o;const ok=q.opts[Q.pick]===q.good;Q.res[Q.i]=ok;sfx(ok?'good':'bad');if(ok&&Math.random()<.5)say(pick(PRAISE),350);render();});
   on(el,'[data-nq]','click',()=>{Q.i++;Q.pick=null;render();});
 };
 
@@ -1273,7 +1307,7 @@ SCREENS.parent=()=>{
       <div class="bars">${SURAHS.map(s=>{const x=p.surahs[s.id]||{stage:0};const n=s.v.length;if(!x.stage&&!x.done)return '';return `<span>${s.emo} ${esc(s.fr)}</span><span class="bar"><i style="width:${(x.stage/n*100).toFixed(0)}%"></i></span><span class="small">${x.stage}/${n} v.${x.understood?' · compris':''}${x.quiz?` · quiz ${x.quiz}/10`:''}</span>`;}).join('')||'<span class="note" style="grid-column:1/-1">Pas encore commencé.</span>'}</div>
       <div class="row" style="flex-wrap:wrap"><button class="btn ghost" data-pts="${p.id}" style="min-height:44px;font-size:1rem">+10 points</button><button class="btn ghost" data-del="${p.id}" style="min-height:44px;font-size:1rem">Supprimer…</button></div></div>`;}).join('');
   const el=view(`<div class="topbar"><button class="iconbtn" data-home aria-label="Fermer">✕</button><h2 style="flex:1;text-align:center" class="title-gold">Espace parents</h2><span style="width:48px"></span></div>
-    <div class="panel stack">${sw('parentCheck','Validation par un parent','À la fin de chaque étape, l\'enfant récite devant vous et vous tapez le code.')}${sw('showAr','Afficher l\'arabe','Texte arabe des versets.')}${sw('showPh','Afficher la phonétique','Transcription en lettres latines.')}${sw('showFr','Afficher la traduction','Sens du verset en français.')}${MIC?`<div><b>Exigence du micro</b><div class="note">Part des mots qui doivent être reconnus pour valider.</div><div class="row" style="margin-top:8px;flex-wrap:wrap">${[[0.75,'Souple'],[0.85,'Normale'],[0.95,'Stricte']].map(([v,t])=>`<button class="toggle ${st.micLevel===v?'on':''}" data-lvl="${v}">${t} · ${Math.round(v*100)}%</button>`).join('')}</div></div>`:''}</div>
+    <div class="panel stack">${sw('parentCheck','Validation par un parent','À la fin de chaque étape, l\'enfant récite devant vous et vous tapez le code.')}${sw('sound','Sons et musique','Petites mélodies quand l\'enfant réussit ou se trompe.')}${sw('voice','Voix qui encourage','Une voix dit « Bravo ! » ou « Essaie encore ».')}${sw('showAr','Afficher l\'arabe','Texte arabe des versets.')}${sw('showPh','Afficher la phonétique','Transcription en lettres latines.')}${sw('showFr','Afficher la traduction','Sens du verset en français.')}${MIC?`<div><b>Exigence du micro</b><div class="note">Part des mots qui doivent être reconnus pour valider.</div><div class="row" style="margin-top:8px;flex-wrap:wrap">${[[0.75,'Souple'],[0.85,'Normale'],[0.95,'Stricte']].map(([v,t])=>`<button class="toggle ${st.micLevel===v?'on':''}" data-lvl="${v}">${t} · ${Math.round(v*100)}%</button>`).join('')}</div></div>`:''}</div>
     <div class="sec-title">Enfants</div>${kids||'<p class="note">Aucun compte pour l\'instant.</p>'}
     <div class="sec-title">Sauvegarde</div>
     <div class="panel stack"><div class="note">${DB.cloud?'☁️ La progression est enregistrée sur votre compte Claude : elle se retrouve sur vos autres appareils.':'📱 La progression est enregistrée dans ce navigateur. Copiez une sauvegarde de temps en temps.'}</div>
