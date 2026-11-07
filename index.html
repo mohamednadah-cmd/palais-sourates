@@ -1056,7 +1056,7 @@ SCREENS.player=()=>{
 /* ----- séance d'apprentissage (étape k = versets 1..k) ----- */
 SCREENS.lesson=()=>{
   const p=me();const s=BY[S.p.sid];const k=S.p.k;const x=sp(p,s.id);const n=s.v.length;
-  if(!S.p.steps){S.p.steps=[{t:'listen'}];if(k>1)S.p.steps.push({t:'mask',lvl:3});S.p.steps.push({t:'final'});S.p.i=0;S.p.fr=true;}
+  if(!S.p.steps){S.p.steps=[{t:'listen'}];if(k>1)S.p.steps.push({t:'chain'});S.p.steps.push({t:'final'});S.p.i=0;S.p.fr=true;}
   const L=S.p, step=L.steps[L.i], practice=k<=x.stage;
   const label=k===1?'Verset 1':k===n?'Toute la sourate':`Versets 1 à ${k}`;
   const head=`<div class="topbar"><button class="iconbtn" data-quit aria-label="Quitter">✕</button><div class="progress"><i style="width:${(L.i/L.steps.length*100).toFixed(0)}%"></i></div><span class="coin">${coinSvg()}<span>${p.points}</span></span></div><div class="stage-label">${esc(s.fr)} · ${label}${practice?' · entraînement':''}</div>`;
@@ -1113,9 +1113,10 @@ SCREENS.lesson=()=>{
     const finalOK=()=>{if(practice||!DB.data.settings.parentCheck){finishStage();return;}
       const kp=keypad(4,v=>{if(v===PARENT_CODE){closeOverlay();finishStage();return true;}return false;},'Montre à un parent','Récite devant papa ou maman. Le parent tape son code pour valider.');
       overlay(`<div class="panel">${kp.html}<button class="btn ghost block" data-x style="margin-top:14px">Je m'entraîne encore</button></div>`,o=>{kp.bind(o);on(o,'[data-x]','click',closeOverlay);});};
+    if(MIC&&!fin&&!L.reveal){micStep(list,`<div class="inst">Récite les versets 1 à ${k} à voix haute<small>Le premier mot de chaque verset est affiché. Touche le micro, récite tout, puis « J'ai fini ».</small></div>`,`<div class="chain">${list.map(v=>`<div class="vline" data-v="${v}">${verseBlock(s,v,3,{})}</div>`).join('')}</div>`,()=>{chime('ok');next();});return;}
     if(MIC&&fin&&!L.reveal){micStep(list,`<div class="inst">${k===n?'Le grand défi !':'Le défi'}<small>Récite ${k===1?'le verset':`les versets 1 à ${k}`} de mémoire, sans regarder.</small></div>`,`<div class="rounds" style="gap:16px;margin:14px 0">${list.map(v=>`<span style="width:56px;height:56px;position:relative;display:inline-block">${numBadge(v).replace('class="num"','style="width:56px;height:56px"')}</span>`).join('')}</div>`,finalOK);return;}
     const ins=fin?`<div class="inst">${k===n?'Le grand défi !':'Le défi'}<small>Récite ${k===1?'le verset':`les versets 1 à ${k}`} de mémoire, sans regarder.</small></div>`
-      :`<div class="inst">Enchaîne les versets 1 à ${k}<small>Seul le premier mot de chaque verset est affiché.</small></div>`;
+      :`<div class="inst">Récite les versets 1 à ${k}<small>Seul le premier mot de chaque verset est affiché.</small></div>`;
     const body=fin&&!L.reveal?`<div class="rounds" style="gap:16px;margin:20px 0">${list.map(v=>`<span style="width:56px;height:56px;position:relative;display:inline-block">${numBadge(v).replace('class="num"','style="width:56px;height:56px"')}</span>`).join('')}</div><div style="text-align:center;font-size:4rem">🤫</div>`
       :`<div class="chain">${list.map(v=>`<div class="vline" data-v="${v}">${verseBlock(s,v,L.reveal?0:3,{})}</div>`).join('')}</div>`;
     const el=view(head+ins+body+(L.reveal?`<div class="inst" style="font-size:1.4rem">Tu as tout bien récité ?</div><div class="rate"><button class="btn coral" data-no>↺ Pas encore</button><button class="btn turq" data-yes>✓ Oui !</button></div>`
