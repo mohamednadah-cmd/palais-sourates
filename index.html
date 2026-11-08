@@ -325,6 +325,23 @@ canvas#fx{position:fixed;inset:0;z-index:70;pointer-events:none}
 @keyframes trophy{0%{transform:scale(0) rotate(-30deg)}60%{transform:scale(1.35) rotate(8deg)}100%{transform:scale(1) rotate(0)}}
 @keyframes wig{0%,100%{transform:rotate(0)}25%{transform:rotate(-7deg) scale(1.05)}75%{transform:rotate(7deg) scale(1.05)}}
 
+.avatar .float{animation:floaty 3.6s ease-in-out infinite}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.avatar .drift{animation:drift 12s ease-in-out infinite}
+@keyframes drift{0%,100%{transform:translateX(-10px)}50%{transform:translateX(12px)}}
+.avatar .flutter{animation:flutter 5s ease-in-out infinite}
+@keyframes flutter{0%,100%{transform:translate(0,0)}25%{transform:translate(10px,-12px)}50%{transform:translate(-6px,-20px)}75%{transform:translate(-12px,-6px)}}
+.avatar .rise{animation:rise 6s linear infinite}
+@keyframes rise{from{transform:translateY(0);opacity:0}10%{opacity:1}to{transform:translateY(-400px);opacity:0}}
+.avatar .burst{animation:burst 2.6s ease-out infinite;transform-box:view-box}
+@keyframes burst{0%{transform:scale(.1);opacity:0}15%{opacity:1}60%{transform:scale(1);opacity:1}100%{transform:scale(1.15);opacity:0}}
+.avatar .snow{animation:snow 6s linear infinite}
+@keyframes snow{from{transform:translateY(-40px)}to{transform:translateY(340px)}}
+.avatar .wag{animation:swayk .9s ease-in-out infinite}
+.avatar .swim{animation:drift 3s ease-in-out infinite}
+.avatar .bubbles{animation:floaty 2s ease-in-out infinite}
+.avatar .perch{animation:bob 2.2s ease-in-out infinite}
+
 </style></head><body>
 <div id="sky" aria-hidden="true"></div>
 <div id="app"></div>
@@ -364,11 +381,12 @@ const AV = (() => {
     glasses:[['aucun','Rien',0],['rondes','Rondes',10],['carrees','Carrées',10],['soleil','Lunettes de soleil',15],['coeur','Cœurs',20],['etoiles','Étoiles',20],['aviateur','Aviateur',25]],
     item:[['aucun','Rien',0],['livre','Livre',5],['fleur','Fleur',5],['glace','Glace',10],['ballon','Ballon',10],['foot','Ballon de foot',10],['telephone','Téléphone',20],
           ['tablette','Tablette',25],['parapluie','Parapluie',20],['chapelet','Chapelet',15],['lanterne','Lanterne',25],['cerfvolant','Cerf-volant',25],['lampe','Lampe magique',50],['telescope','Télescope',35]],
-    pet:[['aucun','Personne',0],['chat','Chat',25],['lapin','Lapin',25],['herisson','Hérisson',30],['faucon','Faucon',40],['chameau','Petit chameau',45]],
-    bg:[['palais','Palais de nuit',0],['oasis','Oasis',15],['souk','Souk',20],['desert','Désert au couchant',20],['jardin','Jardin andalou',30],['ciel','Ciel étoilé',25]]
+    pet:[['aucun','Personne',0],['chat','Chat',25],['lapin','Lapin',25],['herisson','Hérisson',30],['faucon','Faucon',40],['chameau','Petit chameau',45],['chiot','Chiot',25],['chaton','Chaton tigré',25],['perroquet','Perroquet',40],['tortue','Tortue',20],['poisson','Poisson rouge',15],['hamster','Hamster',20],['caneton','Caneton',20]],
+    deco:[['aucun','Rien',0],['guirlande','Guirlande de lanternes',20],['etoiles','Guirlande d\'étoiles',15],['arcenciel','Arc-en-ciel',20],['ballons','Ballons',15],['nuages','Nuages',10],['papillons','Papillons',20],['bulles','Bulles',15],['feux','Feux d\'artifice',35],['tapis','Tapis volant',40],['lune','Grande lune',25]],
+    bg:[['palais','Palais de nuit',0],['oasis','Oasis',15],['souk','Souk',20],['desert','Désert au couchant',20],['jardin','Jardin andalou',30],['plage','Plage',25],['espace','Espace',35],['montagne','Montagne enneigée',30],['ciel','Ciel étoilé',25]]
   };
   const COLORS={skin:SKINS,hairC:HAIRC,topC:TOPC,botC:BOTC,eyeC:EYEC};
-  const DEFAULT={skin:1,hair:'court',hairC:1,eyes:'rond',eyeC:0,brows:'doux',mouth:'sourire',extra:'joues',top:'tshirt',topC:5,bottom:'pantalon',botC:0,shoes:'baskets',hat:'aucun',glasses:'aucun',item:'aucun',pet:'aucun',bg:'palais'};
+  const DEFAULT={deco:'aucun',skin:1,hair:'court',hairC:1,eyes:'rond',eyeC:0,brows:'doux',mouth:'sourire',extra:'joues',top:'tshirt',topC:5,bottom:'pantalon',botC:0,shoes:'baskets',hat:'aucun',glasses:'aucun',item:'aucun',pet:'aucun',bg:'palais'};
   function price(cat,id){if(cat==='hairC'){const c=HAIRC[id];return c?c[2]||0:0;} const l=CAT[cat];if(!l)return 0;const f=l.find(x=>x[0]===id);return f?f[2]:0;}
 
   /* ---------- helpers ---------- */
@@ -622,6 +640,16 @@ const AV = (() => {
       case 'herisson': {let s=T+`<ellipse cx="58" cy="372" rx="32" ry="5" fill="#000" opacity=".2"/>`;let sp='M 24 368 ';for(let i=0;i<10;i++){const a=Math.PI+i*Math.PI/9;sp+=`L ${(58+40*Math.cos(a+.08)).toFixed(1)} ${(366+38*Math.sin(a+.08)).toFixed(1)} L ${(58+28*Math.cos(a+.17)).toFixed(1)} ${(366+26*Math.sin(a+.17)).toFixed(1)} `;}
         s+=P(sp+'L 92 368 Z','#6a4a32')+P('M 70 368 C 70 346 82 338 96 344 C 108 350 106 362 98 368 Z','#e9c9a0')+circ(106,354,3.5,OUT,false)+circ(88,350,2.8,OUT,false)+circ(89,349,1,'#fff',false)+`<ellipse cx="86" cy="358" rx="4" ry="2.5" fill="#ff9bb3" opacity=".7"/>`;return s+E;}
       case 'faucon': return T+L('M 30 370 L 30 300','#7a4a2a',6)+L('M 18 300 L 70 300','#7a4a2a',6)+`<ellipse cx="44" cy="372" rx="18" ry="4" fill="#000" opacity=".2"/>`+P('M 34 298 C 26 270 34 246 48 240 C 62 246 66 270 58 298 Z','#8a6a4a')+P('M 38 298 C 34 278 38 262 46 256 C 52 262 54 280 52 298 Z','#efe3c8','stroke-width="2"')+[[44,268],[48,278],[42,286]].map(([x,y])=>L(`M ${x-3} ${y} L ${x+3} ${y}`,'#8a6a4a',2)).join('')+P('M 56 262 C 68 266 72 288 62 300 L 56 296 Z','#6a4a32')+`<circle cx="46" cy="232" r="13" fill="#8a6a4a" stroke="${OUT}" stroke-width="3"/>`+circ(50,230,4,'#f4c542',false)+circ(51,230,2,OUT,false)+P('M 56 232 L 64 236 L 56 240 Z','#f2c230','stroke-width="2"')+L('M 40 298 L 40 304',OUT,2)+L('M 50 298 L 50 304',OUT,2)+E;
+      case 'chiot': return T+`<ellipse cx="58" cy="373" rx="32" ry="5" fill="#000" opacity=".2"/>`+`<g class="wag" style="transform-origin:84px 352px">`+P('M 82 354 C 98 346 102 330 96 322 C 94 334 88 344 78 348 Z','#e0b07a')+`</g>`+P('M 32 372 C 28 344 38 330 58 330 C 78 330 88 344 84 372 Z','#e0b07a')+P('M 44 372 C 44 360 50 354 58 354 C 66 354 72 360 72 372 Z','#f6e2c4','stroke-width="2"')+`<circle cx="58" cy="314" r="24" fill="#e0b07a" stroke="${OUT}" stroke-width="3"/>`+P('M 38 300 C 26 304 24 330 34 336 C 40 330 42 314 44 306 Z','#9a6a3a')+P('M 78 300 C 90 304 92 330 82 336 C 76 330 74 314 72 306 Z','#9a6a3a')+`<ellipse cx="58" cy="324" rx="13" ry="10" fill="#f6e2c4" stroke="${OUT}" stroke-width="2"/>`+circ(49,310,3.5,OUT,false)+circ(67,310,3.5,OUT,false)+circ(50,309,1.2,'#fff',false)+circ(68,309,1.2,'#fff',false)+`<ellipse cx="58" cy="319" rx="5" ry="3.5" fill="${OUT}"/>`+L('M 58 322 L 58 327',OUT,2)+P('M 54 328 Q 58 338 62 328 Z','#ef7d86','stroke-width="1.5"')+`<rect x="40" y="334" width="36" height="6" rx="3" fill="#e8504b" stroke="${OUT}" stroke-width="2"/>`+circ(58,343,4,'#f4c542')+E;
+      case 'chaton': {let s=T+`<ellipse cx="58" cy="373" rx="26" ry="4" fill="#000" opacity=".2"/>`+`<g class="wag" style="transform-origin:76px 362px">`+P('M 76 364 C 96 360 98 334 88 326 C 92 340 88 354 74 356 Z','#a8a8b8')+`</g>`+P('M 38 372 C 34 350 42 338 58 338 C 74 338 82 350 78 372 Z','#a8a8b8')+P('M 40 312 L 42 292 L 54 304 Z','#a8a8b8')+P('M 76 312 L 74 292 L 62 304 Z','#a8a8b8')+PN('M 44 304 L 45 296 L 50 302 Z','#f6a5c0')+PN('M 72 304 L 71 296 L 66 302 Z','#f6a5c0')+`<ellipse cx="58" cy="318" rx="21" ry="18" fill="#a8a8b8" stroke="${OUT}" stroke-width="3"/>`;
+        for(const d of ['M 52 302 L 53 308','M 58 300 L 58 307','M 64 302 L 63 308','M 44 350 L 52 350','M 64 350 L 72 350','M 42 360 L 50 360']) s+=L(d,'#6a6a7a',2.5);
+        s+=`<ellipse cx="50" cy="318" rx="5" ry="6" fill="#7bd36a" stroke="${OUT}" stroke-width="1.5"/><ellipse cx="66" cy="318" rx="5" ry="6" fill="#7bd36a" stroke="${OUT}" stroke-width="1.5"/>`+`<ellipse cx="50" cy="318" rx="1.8" ry="4.5" fill="${OUT}"/><ellipse cx="66" cy="318" rx="1.8" ry="4.5" fill="${OUT}"/>`+circ(51.5,316,1.3,'#fff',false)+circ(67.5,316,1.3,'#fff',false)+P('M 56 325 L 60 325 L 58 328 Z','#f28ab2','stroke-width="1.2"')+L('M 58 328 Q 55 331 52 330',OUT,1.6)+L('M 58 328 Q 61 331 64 330',OUT,1.6)+L('M 34 322 L 44 324','#fff',1.3)+L('M 82 322 L 72 324','#fff',1.3);return s+E;}
+      case 'tortue': {let s=T+`<ellipse cx="58" cy="374" rx="38" ry="5" fill="#000" opacity=".2"/>`+P('M 26 370 L 22 376 L 34 376 L 36 368 Z','#8ccf6a')+P('M 76 370 L 80 376 L 92 376 L 86 368 Z','#8ccf6a')+P('M 86 362 C 96 354 110 354 112 362 C 112 370 100 372 88 370 Z','#8ccf6a')+circ(104,360,2.6,OUT,false)+L('M 100 366 Q 104 368 108 366',OUT,1.6)+P('M 18 370 C 18 336 38 324 58 324 C 80 324 98 336 98 370 Z','#3f8f4a');
+        for(const [x,y] of [[58,336],[40,352],[76,352],[58,358],[30,364],[86,364]]) s+=`<path d="M ${x-8} ${y} L ${x-4} ${y-7} L ${x+4} ${y-7} L ${x+8} ${y} L ${x+4} ${y+7} L ${x-4} ${y+7} Z" fill="#6cbf5a" stroke="#2c6a34" stroke-width="2"/>`;
+        return s+L('M 18 370 L 98 370',OUT,3)+E;}
+      case 'poisson': return T+`<ellipse cx="58" cy="374" rx="30" ry="4" fill="#000" opacity=".2"/>`+`<path d="M 34 312 C 14 330 18 368 40 372 L 76 372 C 98 368 102 330 82 312 Z" fill="rgba(170,225,255,.35)" stroke="${OUT}" stroke-width="3"/>`+`<path d="M 24 330 C 22 350 28 366 40 370 L 76 370 C 88 366 94 350 92 330 Z" fill="#5ab8e8" opacity=".75"/>`+L('M 26 330 L 90 330','#bdf2ff',2)+`<ellipse cx="58" cy="312" rx="24" ry="5" fill="rgba(255,255,255,.4)" stroke="${OUT}" stroke-width="2.5"/>`+`<g class="swim">`+P('M 44 348 C 50 338 66 338 70 348 C 66 358 50 358 44 348 Z','#ff8a2a','stroke-width="2"')+P('M 70 348 L 80 340 L 80 356 Z','#ffb36a','stroke-width="2"')+P('M 54 340 L 60 334 L 62 341 Z','#ffb36a','stroke-width="1.5"')+circ(50,346,2,OUT,false)+`</g>`+`<g class="bubbles">${circ(40,340,2.5,'none',false,'stroke="#fff" stroke-width="1.5"')}${circ(44,328,1.8,'none',false,'stroke="#fff" stroke-width="1.5"')}</g>`+P('M 36 370 C 40 362 44 362 46 370 Z','#3f8f4a','stroke-width="1.5"')+P('M 72 370 C 74 358 80 356 82 370 Z','#4fae5a','stroke-width="1.5"')+E;
+      case 'hamster': return T+`<ellipse cx="58" cy="374" rx="28" ry="4" fill="#000" opacity=".2"/>`+circ(40,330,8,'#e9a85a')+circ(76,330,8,'#e9a85a')+circ(40,330,4,'#f6a5c0',false)+circ(76,330,4,'#f6a5c0',false)+`<ellipse cx="58" cy="350" rx="28" ry="24" fill="#e9a85a" stroke="${OUT}" stroke-width="3"/>`+`<ellipse cx="58" cy="358" rx="17" ry="14" fill="#fff3dc"/>`+`<ellipse cx="42" cy="350" rx="8" ry="6" fill="#fff3dc"/><ellipse cx="74" cy="350" rx="8" ry="6" fill="#fff3dc"/>`+circ(49,341,3.2,OUT,false)+circ(67,341,3.2,OUT,false)+circ(50,340,1.1,'#fff',false)+circ(68,340,1.1,'#fff',false)+P('M 56 347 L 60 347 L 58 350 Z','#f28ab2','stroke-width="1.2"')+`<ellipse cx="42" cy="349" rx="4" ry="2.5" fill="#ff9bb3" opacity=".7"/><ellipse cx="74" cy="349" rx="4" ry="2.5" fill="#ff9bb3" opacity=".7"/>`+`<ellipse cx="50" cy="370" rx="5" ry="3" fill="#f6a5c0" stroke="${OUT}" stroke-width="1.5"/><ellipse cx="66" cy="370" rx="5" ry="3" fill="#f6a5c0" stroke="${OUT}" stroke-width="1.5"/>`+E;
+      case 'caneton': return T+`<ellipse cx="58" cy="374" rx="26" ry="4" fill="#000" opacity=".2"/>`+L('M 50 362 L 48 372 M 44 372 L 54 372',`#f08a24`,3)+L('M 64 362 L 66 372 M 62 372 L 72 372','#f08a24',3)+P('M 32 350 C 32 334 46 328 62 330 C 80 332 88 344 84 356 C 80 366 44 368 32 350 Z','#ffd84a')+P('M 32 346 C 24 340 22 334 26 330 C 30 336 34 340 36 340 Z','#ffd84a','stroke-width="2"')+P('M 58 344 C 66 340 76 344 76 352 C 68 354 62 352 58 344 Z','#f2c230','stroke-width="2"')+`<circle cx="70" cy="318" r="16" fill="#ffd84a" stroke="${OUT}" stroke-width="3"/>`+P('M 84 318 C 94 316 98 320 96 324 C 92 326 86 325 84 322 Z','#f08a24','stroke-width="2"')+circ(74,314,3,OUT,false)+circ(75,313,1,'#fff',false)+P('M 66 302 C 66 296 72 294 74 298 C 70 298 68 300 68 303 Z','#ffd84a','stroke-width="2"')+`<ellipse cx="68" cy="322" rx="4" ry="2.5" fill="#ff9bb3" opacity=".6"/>`+E;
       case 'chameau': return T+`<ellipse cx="54" cy="374" rx="40" ry="5" fill="#000" opacity=".2"/>`+L('M 28 340 L 26 372','#c9a06a',7)+L('M 40 342 L 40 372','#c9a06a',7)+L('M 68 342 L 70 372','#c9a06a',7)+L('M 80 340 L 82 372','#c9a06a',7)+P('M 18 336 C 16 312 28 300 40 304 C 46 288 66 288 72 304 C 86 302 94 318 88 340 C 70 348 36 348 18 336 Z','#d9b27a')+P('M 32 306 C 40 300 52 300 58 304 L 54 316 L 34 316 Z','#e8504b','stroke-width="2"')+star8(44,310,4,'#f4c542')+P('M 84 322 C 96 312 98 292 94 280 L 106 276 C 110 296 106 318 92 334 Z','#d9b27a')+`<ellipse cx="104" cy="276" rx="13" ry="10" fill="#d9b27a" stroke="${OUT}" stroke-width="3"/>`+P('M 96 268 L 94 260 L 102 266 Z','#d9b27a','stroke-width="2"')+circ(106,273,2.5,OUT,false)+L('M 112 280 Q 114 282 116 280',OUT,2)+E;
     }
     return '';
@@ -639,6 +667,10 @@ const AV = (() => {
       case 'jardin': {let s=`<rect width="${W}" height="${H}" fill="#1f5a5a"/>`+`<path d="M 30 400 L 30 130 C 30 60 150 20 150 20 C 150 20 270 60 270 130 L 270 400 Z" fill="#2c7a72" stroke="#f4c542" stroke-width="4"/>`;
         for(let y=300;y<400;y+=20)for(let x=(y/20)%2?0:20;x<300;x+=40) s+=star8(x,y,10,'#e9c46a','opacity=".5"');
         return s+`<ellipse cx="150" cy="352" rx="70" ry="16" fill="#8ad0f2" stroke="#e9c46a" stroke-width="4"/>`+`<path d="M 150 350 L 150 300" stroke="#bff0ff" stroke-width="5" class="twinkle"/>`+cypress(46,330)+cypress(254,330);}
+      case 'plage': return `<rect width="${W}" height="${H}" fill="url(#${uid}sky2)"/>`+`<circle cx="60" cy="70" r="28" fill="#ffe27a"/>`+`<rect x="0" y="230" width="300" height="70" fill="#2fa6d8"/>`+L('M 0 250 Q 30 244 60 250 T 120 250 T 180 250 T 240 250 T 300 250','#bdf2ff',3,'opacity=".8"')+L('M 0 274 Q 30 268 60 274 T 120 274 T 180 274 T 240 274 T 300 274','#bdf2ff',3,'opacity=".6"')+PN('M 0 290 C 80 278 200 284 300 280 L 300 400 L 0 400 Z','#f3d89a')+`<path d="M 210 236 L 222 236 L 216 210 Z" fill="#fff"/><path d="M 204 238 L 230 238 L 226 244 L 208 244 Z" fill="#e8504b"/>`+palm(268,300,-1)+`<g transform="translate(40 330)"><path d="M0 0 L 30 0 L 15 -40 Z" fill="#e8504b" opacity=".9"/><path d="M 15 -40 L 15 10" stroke="#5a3a22" stroke-width="3"/></g>`;
+      case 'espace': {let s=`<rect width="${W}" height="${H}" fill="#07081e"/>`;for(let i=0;i<50;i++){s+=`<circle cx="${(i*67)%300}" cy="${(i*37)%400}" r="${.8+(i%3)*.6}" fill="#fff" class="twinkle" style="animation-delay:${(i%7)*.4}s"/>`;}
+        return s+`<circle cx="240" cy="80" r="34" fill="#e8964a"/><ellipse cx="240" cy="80" rx="56" ry="12" fill="none" stroke="#f3d89a" stroke-width="5" transform="rotate(-18 240 80)"/><circle cx="50" cy="150" r="18" fill="#5ab8e8"/><path d="M 40 146 C 46 140 54 142 56 150" stroke="#3f8f4a" stroke-width="5" fill="none"/>`+`<g class="drift"><path d="M 150 40 L 160 60 L 140 60 Z" fill="#f4efe4"/><rect x="144" y="60" width="12" height="20" fill="#e8504b"/><path d="M 146 80 L 150 92 L 154 80 Z" fill="#f2c230"/></g>`+`<path d="M 0 360 C 80 340 220 350 300 334 L 300 400 L 0 400 Z" fill="#3a3a5a"/><circle cx="80" cy="370" r="10" fill="#2a2a46"/><circle cx="220" cy="356" r="7" fill="#2a2a46"/>`;}
+      case 'montagne': return `<rect width="${W}" height="${H}" fill="url(#${uid}sky2)"/>`+PN('M -20 300 L 80 120 L 180 300 Z','#7a8aa8')+PN('M 80 120 L 104 164 L 92 158 L 80 172 L 68 158 L 56 164 Z','#fff')+PN('M 100 300 L 210 90 L 320 300 Z','#5f6f90')+PN('M 210 90 L 238 142 L 224 134 L 210 150 L 196 134 L 182 142 Z','#fff')+PN('M 0 300 C 80 284 200 290 300 280 L 300 400 L 0 400 Z','#eef4ff')+cypress(40,330).replace('#164a3a','#2f6a4a')+cypress(262,330).replace('#164a3a','#2f6a4a')+[[30,40],[120,70],[200,30],[270,60],[160,140]].map(([x,y],i)=>`<circle class="snow" style="animation-delay:-${i*.8}s" cx="${x}" cy="${y}" r="3" fill="#fff"/>`).join('');
       case 'ciel': {let s=`<rect width="${W}" height="${H}" fill="url(#${uid}sky4)"/>`;for(let i=0;i<40;i++){const x=(i*73)%300,y=(i*41)%300;s+=`<circle cx="${x}" cy="${y}" r="${1+(i%3)*.6}" fill="#fff" class="twinkle" style="animation-delay:${(i%7)*.4}s"/>`;}
         return s+`<path d="M 238 40 a 30 30 0 1 0 22 52 a 24 24 0 1 1 -22 -52 Z" fill="#fff4c7"/>`+star(80,70,8,'#fff4c7')+`<path d="M 0 360 C 100 340 200 350 300 336 L 300 400 L 0 400 Z" fill="#141633"/>`;}
       default: {let s=`<rect width="${W}" height="${H}" fill="url(#${uid}sky1)"/>`;for(let i=0;i<24;i++){const x=(i*97)%300,y=(i*53)%200;s+=`<circle cx="${x}" cy="${y}" r="${1+(i%3)*.5}" fill="#fff" class="twinkle" style="animation-delay:${(i%6)*.5}s"/>`;}
@@ -651,6 +683,32 @@ const AV = (() => {
   function palm(x,y,dir){let s=L(`M ${x} ${y+60} C ${x+6*dir} ${y+20} ${x+2*dir} ${y-20} ${x+10*dir} ${y-60}`,'#7a4a2a',9);const tx=x+10*dir,ty=y-60;for(const a of [-160,-120,-60,-20,-90,200]){const r=a*Math.PI/180;s+=`<path d="M ${tx} ${ty} Q ${(tx+30*Math.cos(r)).toFixed(1)} ${(ty+30*Math.sin(r)-14).toFixed(1)} ${(tx+52*Math.cos(r)).toFixed(1)} ${(ty+52*Math.sin(r)+6).toFixed(1)}" stroke="#2f8a4a" stroke-width="10" fill="none" stroke-linecap="round"/>`;}return s;}
   function cypress(x,y){return `<path d="M ${x} ${y+40} C ${x-22} ${y} ${x-14} ${y-90} ${x} ${y-130} C ${x+14} ${y-90} ${x+22} ${y} ${x} ${y+40} Z" fill="#164a3a"/>`;}
 
+
+  function parrot(){ // perché sur l'épaule gauche
+    return `<g class="perch">`+P('M 82 214 C 70 200 70 176 82 166 C 94 160 104 168 104 184 C 104 200 98 212 90 216 Z','#e8403a')+P('M 82 214 C 74 222 66 236 62 250 C 70 246 80 236 88 222 Z','#3466c9','stroke-width="2.5"')+P('M 86 214 C 82 226 80 240 80 254 C 86 244 90 230 92 218 Z','#f2c230','stroke-width="2"')
+      +P('M 78 186 C 74 198 76 210 86 214 C 92 206 94 196 90 186 Z','#3466c9','stroke-width="2.5"')+P('M 80 196 C 78 204 80 210 86 212 C 88 206 88 200 86 196 Z','#2fae7b','stroke-width="2"')
+      +P('M 92 170 C 100 168 106 174 104 182 C 98 184 92 180 92 170 Z','#fff','stroke-width="2"')+circ(98,176,3,OUT,false)+circ(99,175,1,'#fff',false)
+      +P('M 104 176 C 116 174 118 188 108 192 C 108 186 106 182 102 182 Z','#3a3a46','stroke-width="2"')+L('M 86 216 L 84 222 M 94 216 L 96 222',OUT,2.5)+`</g>`;
+  }
+  function deco(c,layer){
+    const d=c.deco||'aucun';
+    if(layer==='front'){
+      if(d==='bulles'){let s='';for(let i=0;i<9;i++){const x=20+i*33,r=6+(i%3)*4;s+=`<circle class="rise" style="animation-delay:-${(i*.7).toFixed(1)}s;animation-duration:${(5+i%4)}s" cx="${x}" cy="380" r="${r}" fill="rgba(255,255,255,.15)" stroke="rgba(255,255,255,.75)" stroke-width="1.5"/>`;}return s;}
+      if(d==='papillons'){let s='';for(const [x,y,c1,dl] of [[40,120,'#f28ab2',0],[262,90,'#f2c230',.6],[250,220,'#8ad0f2',1.2],[30,250,'#b48aff',1.8]]) s+=`<g class="flutter" style="animation-delay:-${dl}s"><g transform="translate(${x} ${y})"><path d="M0 0 C -14 -16 -22 -2 -10 4 C -18 12 -6 18 0 6 C 6 18 18 12 10 4 C 22 -2 14 -16 0 0 Z" fill="${c1}" stroke="${OUT}" stroke-width="1.5"/><path d="M0 -6 L0 8" stroke="${OUT}" stroke-width="2"/></g></g>`;return s;}
+      return '';
+    }
+    switch(d){
+      case 'guirlande': {let s=L('M 0 40 Q 75 80 150 50 Q 225 20 300 60','#f4c542',2);const pts=[[20,52],[60,66],[100,64],[140,54],[180,42],[220,38],[260,46]];pts.forEach(([x,y],i)=>{const col=['#e8504b','#22b8b0','#f2c230','#8b5cf6','#ef6aa0','#22b8b0','#e8504b'][i];s+=`<g class="swing" style="transform-origin:${x}px ${y}px;animation-delay:-${i*.3}s">`+L(`M ${x} ${y} L ${x} ${y+8}`,'#c9962a',1.5)+`<circle cx="${x}" cy="${y+22}" r="16" fill="${col}" opacity=".25"/>`+`<path d="M ${x-7} ${y+10} L ${x+7} ${y+10} C ${x+11} ${y+16} ${x+11} ${y+26} ${x+6} ${y+32} L ${x-6} ${y+32} C ${x-11} ${y+26} ${x-11} ${y+16} ${x-7} ${y+10} Z" fill="${col}" stroke="#8a5a12" stroke-width="1.5"/><ellipse cx="${x}" cy="${y+21}" rx="3" ry="6" fill="#fff6c8" opacity=".9"/>`+`</g>`;});return s;}
+      case 'etoiles': {let s=L('M 0 30 Q 150 90 300 30','#fff6c8',1.5,'opacity=".7"');for(let i=0;i<9;i++){const x=15+i*34,y=30+60*(1-Math.pow((x-150)/150,2))*.5*2*.5+ (i%2?6:0);s+=L(`M ${x} ${y-4} L ${x} ${y+4}`,'#fff6c8',1)+star(x,y+12,9,['#f4c542','#fff6c8','#ffb3d0'][i%3],`class="twinkle" style="animation-delay:-${i*.35}s"`);}return s;}
+      case 'arcenciel': return ['#e8504b','#f08a24','#f2c230','#2fae7b','#3466c9','#7b4fc9'].map((col,k)=>{const r=150-k*11;return `<path d="M ${150-r} 290 A ${r} ${r*.9} 0 0 1 ${150+r} 290" fill="none" stroke="${col}" stroke-width="11" opacity=".8"/>`;}).join('')+`<g fill="#fff" opacity=".95"><circle cx="8" cy="284" r="16"/><circle cx="28" cy="280" r="18"/><circle cx="46" cy="288" r="14"/><circle cx="254" cy="288" r="14"/><circle cx="272" cy="280" r="18"/><circle cx="292" cy="284" r="16"/></g>`;
+      case 'ballons': {let s='';for(const [x,y,col,dl] of [[30,90,'#e8504b',0],[58,70,'#f2c230',.5],[44,130,'#22b8b0',1],[250,80,'#ef6aa0',.3],[276,110,'#8b5cf6',.8],[256,140,'#2fae7b',1.3]]) s+=`<g class="float" style="animation-delay:-${dl}s">`+L(`M ${x} ${y+26} Q ${x+6} ${y+80} ${x} ${y+140}`,'#ddd',1.2)+`<ellipse cx="${x}" cy="${y}" rx="18" ry="22" fill="${col}" stroke="${OUT}" stroke-width="2"/><ellipse cx="${x-6}" cy="${y-8}" rx="4" ry="7" fill="#fff" opacity=".45"/><path d="M ${x-3} ${y+22} L ${x+3} ${y+22} L ${x} ${y+27} Z" fill="${col}"/></g>`;return s;}
+      case 'nuages': {const cl=(x,y,k)=>`<g class="drift" style="animation-delay:-${k}s"><g fill="#fff" opacity=".85"><ellipse cx="${x}" cy="${y}" rx="30" ry="14"/><circle cx="${x-12}" cy="${y-8}" r="14"/><circle cx="${x+10}" cy="${y-12}" r="17"/></g></g>`;return cl(50,60,0)+cl(240,40,3)+cl(200,120,6)+cl(70,170,9);}
+      case 'feux': {let s='';for(const [x,y,col,dl] of [[60,70,'#f4c542',0],[240,60,'#ef6aa0',.8],[150,40,'#22b8b0',1.6],[260,160,'#8ad0f2',2.2]]){let r='';for(let i=0;i<12;i++){const a=i*Math.PI/6;r+=`<path d="M ${x+8*Math.cos(a)} ${y+8*Math.sin(a)} L ${x+30*Math.cos(a)} ${y+30*Math.sin(a)}" stroke="${col}" stroke-width="3" stroke-linecap="round"/>`;}s+=`<g class="burst" style="transform-origin:${x}px ${y}px;animation-delay:-${dl}s">${r}<circle cx="${x}" cy="${y}" r="4" fill="#fff"/></g>`;}return s;}
+      case 'tapis': return `<g class="float" style="animation-duration:4s"><path d="M 50 366 C 90 356 210 356 250 366 L 262 384 C 220 376 80 376 38 384 Z" fill="#c62f4a" stroke="${OUT}" stroke-width="3"/><path d="M 60 368 C 100 360 200 360 240 368 L 248 380 C 210 374 90 374 52 380 Z" fill="none" stroke="#f4c542" stroke-width="2.5" stroke-dasharray="4 4"/>`+[0,1,2,3,4].map(i=>star8(100+i*25,372,5,'#f4c542')).join('')+[38,262].map(x=>[0,1,2,3].map(k=>L(`M ${x+(x<150?-k*3:k*3)} ${384-k*4} l ${x<150?-8:8} 4`,'#f4c542',2)).join('')).join('')+`</g>`;
+      case 'lune': return `<circle cx="225" cy="95" r="70" fill="#fff4c7" opacity=".12"/><path d="M 210 40 A 60 60 0 1 0 270 130 A 48 48 0 1 1 210 40 Z" fill="#fff1b8" stroke="#e8c96a" stroke-width="2"/>`+star(160,60,8,'#fff4c7','class="twinkle"')+star(280,170,6,'#fff4c7','class="twinkle" style="animation-delay:-1s"')+star(140,130,5,'#fff4c7','class="twinkle" style="animation-delay:-2s"');
+    }
+    return '';
+  }
   /* ---------- assemblage ---------- */
   function svg(cfg,opts={}){
     const c=Object.assign({},DEFAULT,cfg||{});
@@ -674,7 +732,7 @@ const AV = (() => {
     const headOnly=opts.head;
     const vb=opts.vb||(headOnly?'60 22 180 190':'0 0 300 400');
     let s=`<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="${vb}" class="avatar ${opts.cls||''}" style="--skin:${c.skin}" role="img" aria-label="Personnage">${defs}`;
-    if(opts.bg) s+=`<g class="av-bg">${bg(c,uid)}</g>`;
+    if(opts.bg) s+=`<g class="av-bg">${bg(c,uid)}${deco(c,'back')}</g>`;
     if(!headOnly) s+=`<ellipse cx="150" cy="372" rx="72" ry="9" fill="#000" opacity=".25"/>`;
     s+=`<g class="${opts.still?'':'av-bob'}">`;
     if(!isHij) s+=hair(c,'b',g);
@@ -684,9 +742,11 @@ const AV = (() => {
     s+=`<g class="${opts.still?'':'av-face'}">`+eyes(c)+brows(c)+mouth(c)+extra(c)+`</g>`;
     if(!isHij) s+=hair(c,'f',g);
     s+=hat(c)+glasses(c);
+    if(!headOnly&&c.pet==='perroquet') s+=parrot();
     if(!headOnly) s+=item(c);
     s+=`</g>`;
     if(!headOnly) s+=pet(c);
+    if(opts.bg&&!headOnly) s+=deco(c,'front');
     s+='</svg>';
     return s;
   }
@@ -941,9 +1001,9 @@ SCREENS.create=()=>{
 
 /* ----- options du personnage (création + boutique) ----- */
 const CATS=[['skin','Peau','🖐️','color'],['hair','Coiffure','💇'],['hairC','Couleur cheveux','🎨','color'],['eyes','Yeux','👀'],['eyeC','Iris','🟤','color'],['brows','Sourcils','〰️'],['mouth','Bouche','👄'],['extra','Joues','😊'],
-  ['hat','Chapeaux & voiles','👑'],['glasses','Lunettes','🕶️'],['top','Haut','👕'],['topC','Couleur du haut','🎨','color'],['bottom','Bas','👖'],['botC','Couleur du bas','🎨','color'],['shoes','Chaussures','👟'],['item','Objet','☂️'],['pet','Compagnon','🐱'],['bg','Décor','🏰']];
+  ['hat','Chapeaux & voiles','👑'],['glasses','Lunettes','🕶️'],['top','Haut','👕'],['topC','Couleur du haut','🎨','color'],['bottom','Bas','👖'],['botC','Couleur du bas','🎨','color'],['shoes','Chaussures','👟'],['item','Objet','☂️'],['pet','Compagnon','🐶'],['deco','Décoration','🎈'],['bg','Décor','🏰']];
 const HEADCATS=['hair','eyes','brows','mouth','extra','hat','glasses','hairC','eyeC','skin'];
-const CROP={top:'45 175 210 210',bottom:'60 250 180 150',shoes:'80 300 140 90'};
+const CROP={pet:'5 150 190 235',top:'45 175 210 210',bottom:'60 250 180 150',shoes:'80 300 140 90'};
 const COLMAP={skin:'skin',hairC:'hairC',topC:'topC',botC:'botC',eyeC:'eyeC'};
 function owns(p,cat,id){return AV.price(cat,id)===0||(p&&p.owned.includes(cat+':'+id));}
 function optionsHTML(cat,av,p,freeOnly,sel){
@@ -952,7 +1012,7 @@ function optionsHTML(cat,av,p,freeOnly,sel){
     return `<div class="swatches">${list.map((c,i)=>{const pr=AV.price(cat,i);if(freeOnly&&pr)return '';const ow=!pr||owns(p,cat,i);return `<button class="sw ${av[cat]===i?'on':''} ${sel===i?'on':''}" data-opt="${i}" data-color="1" title="${esc(c[1])}" style="background:${c[0]}">${!ow?`<span class="price">${coinSvg()}${pr}</span>`:''}</button>`;}).join('')}</div>`;}
   let list=AV.CAT[cat];if(freeOnly)list=list.filter(x=>x[2]===0);
   return `<div class="grid">${list.map(([id,nm,pr])=>{const ow=!pr||owns(p,cat,id);const a={...av,[cat]:id};const head=HEADCATS.includes(cat);const vb=CROP[cat];
-    return `<button class="it ${(sel?sel===id:av[cat]===id)?'on':''} ${ow?'':'lockd'}" data-opt="${id}"><span class="th">${AV.svg(a,{head,vb,still:true,bg:cat==='bg'})}</span><span class="nm">${esc(nm)}</span>${ow?'':`<span class="price">${coinSvg()}${pr}</span>`}</button>`;}).join('')}</div>`;
+    return `<button class="it ${(sel?sel===id:av[cat]===id)?'on':''} ${ow?'':'lockd'}" data-opt="${id}"><span class="th">${AV.svg(a,{head,vb,still:true,bg:cat==='bg'||cat==='deco'})}</span><span class="nm">${esc(nm)}</span>${ow?'':`<span class="price">${coinSvg()}${pr}</span>`}</button>`;}).join('')}</div>`;
 }
 
 SCREENS.hero=()=>{
