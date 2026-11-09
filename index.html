@@ -804,8 +804,8 @@ function palaceSvg(){
 /* ---------- données ---------- */
 const LS_KEY='palais-sourates-v1';
 const DB={data:null,ref:null,writing:false,pending:false,timer:null,cloud:false};
-function blank(){return {v:1,profiles:[],settings:{sound:true,voice:true,parentCheck:!window.WEB_BUILD,showAr:true,showPh:true,showFr:true,micLevel:0.85},updatedAt:0};}
-function migrate(d){d=Object.assign(blank(),d||{});d.settings=Object.assign(blank().settings,d.settings||{});d.profiles=(d.profiles||[]).map(p=>Object.assign({points:0,earned:0,owned:[],surahs:{},streak:{last:'',n:0},av:{...AV.DEFAULT}},p));return d;}
+function blank(){return {v:1,profiles:[],settings:{sound:true,voice:true,parentCheck:!window.WEB_BUILD,showAr:true,showPh:true,showFr:true,micLevel:0.8},updatedAt:0};}
+function migrate(d){d=Object.assign(blank(),d||{});d.settings=Object.assign(blank().settings,d.settings||{});if(d.settings.micLevel===0.85)d.settings.micLevel=0.8;if(d.settings.micLevel===0.75)d.settings.micLevel=0.7;if(d.settings.micLevel===0.95)d.settings.micLevel=0.9;d.profiles=(d.profiles||[]).map(p=>Object.assign({points:0,earned:0,owned:[],surahs:{},streak:{last:'',n:0},av:{...AV.DEFAULT}},p));return d;}
 function loadLocal(){try{const r=localStorage.getItem(LS_KEY);if(r)return JSON.parse(r);}catch(e){}return null;}
 DB.data=migrate(loadLocal());
 function save(){DB.data.updatedAt=Date.now();try{localStorage.setItem(LS_KEY,JSON.stringify(DB.data));}catch(e){}clearTimeout(DB.timer);DB.timer=setTimeout(pushRemote,1200);}
@@ -899,7 +899,8 @@ function sfx(kind){
 function chime(k){sfx({ok:'good',win:'stage',no:'bad',tap:'tap',coin:'coin'}[k]||k);}
 const PRAISE=['Bravo !','Excellent !','Super !','Magnifique !','Très bien !','Tu es un champion !','Waouh, bravo !'];
 const ENCOURAGE=['Presque ! Essaie encore.','Pas grave, on réessaie !','Tu y es presque !','Courage, recommence !'];
-function say(txt,delay=450){if(DB.data.settings.voice===false||!window.speechSynthesis)return;setTimeout(()=>{try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(txt);u.lang='fr-FR';u.rate=1.05;u.pitch=1.25;const v=speechSynthesis.getVoices().find(x=>/^fr/i.test(x.lang));if(v)u.voice=v;speechSynthesis.speak(u);}catch(e){}},delay);}
+function say(){}
+function sayOld(txt,delay=450){if(DB.data.settings.voice===false||!window.speechSynthesis)return;setTimeout(()=>{try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(txt);u.lang='fr-FR';u.rate=1.05;u.pitch=1.25;const v=speechSynthesis.getVoices().find(x=>/^fr/i.test(x.lang));if(v)u.voice=v;speechSynthesis.speak(u);}catch(e){}},delay);}
 const pick=a=>a[Math.random()*a.length|0];
 
 /* ---------- effets ---------- */
@@ -1079,8 +1080,8 @@ SCREENS.gate=()=>{
   const p=me();const s=BY[S.p.sid];const x=sp(p,s.id);const n=s.v.length;prefetch(s.id);
   let steps='';
   for(let k=1;k<=n;k++){const st=k<=x.stage?'done':k===x.stage+1?'cur':'lock';
-    const g=groupOf(k,n);const t=`Verset ${k}`;
-    const d=k===n&&n>3?`Puis les versets ${g.a} à ${k}, puis toute la sourate`:g.end?(g.a<k?`Puis les versets ${g.a} à ${k} ensemble`:'Écoute et récite'):'Écoute et récite ce verset';
+    const t=`Verset ${k}`;
+    const d=k===1?'Écoute, puis récite en 4 étapes':`Puis les versets 1 à ${k}, avec et sans texte`;
     steps+=`<button class="step ${st}" data-stage="${k}" ${st==='lock'?'disabled':''}><span class="ico">${st==='done'?'✓':st==='cur'?'▶':'🔒'}</span><span><span class="t">${t}</span><br><span class="d">${d}</span></span><span class="go">${st==='done'?'Rejouer':st==='cur'?'+5 ⭐':''}</span></button>`;}
   const cu=x.understood?'done':x.stage>=n?'cur':'lock', cq=x.done?'done':x.understood?'cur':'lock';
   const el=view(topbar(p,{back:true})+`<div class="gate-head"><div class="arname">${esc(s.ar)}</div><h2 class="title-gold">${esc(s.fr)}</h2><div class="mean">« ${esc(s.mean)} » · ${n} versets</div></div>
@@ -1098,12 +1099,14 @@ SCREENS.gate=()=>{
 /* ----- reconnaissance vocale (version web) ----- */
 const SRC=window.SpeechRecognition||window.webkitSpeechRecognition;
 const MIC=!!(window.WEB_BUILD&&SRC);
-function nw(w){return String(w).replace(/[ؐ-ًؚ-ٰٟۖ-ۭـ]/g,'').replace(/[إأآٱ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').replace(/ؤ/g,'و').replace(/ئ/g,'ي').replace(/[^ء-ي]/g,'');}
+function fold(w){return w.replace(/[قك]/g,'ك').replace(/[حهخ]/g,'ه').replace(/[عءاأإآ]/g,'ا').replace(/[صسث]/g,'س').replace(/[ضد]/g,'د').replace(/[طت]/g,'ت').replace(/[ظذز]/g,'ز').replace(/غ/g,'ر');}
+function nw(w){return fold(nw0(w));}
+function nw0(w){return String(w).replace(/[ؐ-ًؚ-ٰٟۖ-ۭـ]/g,'').replace(/[إأآٱ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').replace(/ؤ/g,'و').replace(/ئ/g,'ي').replace(/[^ء-ي]/g,'');}
 function lev(a,b){const m=a.length,n=b.length;let p=Array.from({length:n+1},(_,j)=>j);for(let i=1;i<=m;i++){const c=[i];for(let j=1;j<=n;j++)c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));p=c;}return p[n];}
 function sim(a,b){if(!a||!b)return 0;return 1-lev(a,b)/Math.max(a.length,b.length);}
 function grade(words,text){
   const E=words.map(nw),R=String(text).split(/\s+/).map(nw).filter(Boolean),n=E.length,m=R.length;
-  const eq=(i,j)=>sim(E[i],R[j])>=.6;
+  const eq=(i,j)=>sim(E[i],R[j])>=.55;
   const dp=Array.from({length:n+1},()=>new Array(m+1).fill(0));
   for(let i=1;i<=n;i++)for(let j=1;j<=m;j++)dp[i][j]=Math.max(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]+(eq(i-1,j-1)?1:0));
   const ok=E.map(e=>!e);let i=n,j=m;
@@ -1128,7 +1131,7 @@ function coloredLines(s,list,ok){let k=0;return `<div class="chain">${list.map(v
 
 /* ----- texte d'un verset ----- */
 function hiddenWord(i,lvl){return lvl===1?i%3===1:lvl===2?i%3!==0:lvl>=3?i>0:false;}
-function words(txt,lvl){return txt.split(/\s+/).map((w,i)=>`<span class="w ${hiddenWord(i,lvl)?'hid':''}">${esc(w)}</span>`).join(' ');}
+function words(txt,lvl){const W=txt.split(/\s+/),N=W.length;const hid=i=>lvl==='deb'?i<Math.max(1,Math.ceil(N/2)):lvl==='fin'?i>=Math.min(N-1,Math.floor(N/2))||N===1:lvl==='all'?true:hiddenWord(i,lvl);return W.map((w,i)=>`<span class="w ${hid(i)?'hid':''}">${esc(w)}</span>`).join(' ');}
 function verseBlock(s,v,lvl=0,opts={}){
   const V=s.v[v-1], st=DB.data.settings;
   return `${st.showAr?`<div class="v-ar">${words(V.ar,lvl)}</div>`:''}${st.showPh?`<div class="v-ph">${words(V.ph,lvl)}</div>`:''}${(opts.fr&&st.showFr)?`<div class="v-fr">${esc(V.fr)}</div>`:''}`;
@@ -1152,7 +1155,7 @@ SCREENS.player=()=>{
 /* ----- séance d'apprentissage (étape k = versets 1..k) ----- */
 SCREENS.lesson=()=>{
   const p=me();const s=BY[S.p.sid];const k=S.p.k;const x=sp(p,s.id);const n=s.v.length;
-  if(!S.p.steps){const g=groupOf(k,n);S.p.steps=[{t:'listen'},{t:'final',list:[k]}];if(g.end&&g.a<k)S.p.steps.push({t:'final',list:range(g.a,k)});if(k===n&&n>3)S.p.steps.push({t:'final',list:range(1,n)});S.p.i=0;S.p.fr=true;}
+  if(!S.p.steps){S.p.steps=[{t:'listen'},{t:'rec',list:[k],m:0},{t:'rec',list:[k],m:'deb'},{t:'rec',list:[k],m:'fin'},{t:'rec',list:[k],m:'all'}];if(k>1)S.p.steps.push({t:'rec',list:range(1,k),m:0},{t:'rec',list:range(1,k),m:'all'});S.p.i=0;S.p.fr=true;}
   const L=S.p, step=L.steps[L.i], practice=k<=x.stage;
   const label=`Verset ${k}`;
   const head=`<div class="topbar"><button class="iconbtn" data-quit aria-label="Quitter">✕</button><div class="progress"><i style="width:${(L.i/L.steps.length*100).toFixed(0)}%"></i></div><span class="coin">${coinSvg()}<span>${p.points}</span></span></div><div class="stage-label">${esc(s.fr)} · ${label}${practice?' · entraînement':''}</div>`;
@@ -1161,16 +1164,35 @@ SCREENS.lesson=()=>{
   const bindToggles=el=>{on(el,'[data-fr]','click',()=>{L.fr=!L.fr;render();});on(el,'[data-slow]','click',(e,b)=>{AU.rate=AU.rate<1?1:.8;b.classList.toggle('on',AU.rate<1);});on(el,'[data-quit]','click',()=>{stopAudio();back();});};
 
   if(step.t==='listen'){
-    const el=view(head+`<div class="inst">Écoute 3 fois le verset ${k}<small>Suis les mots des yeux. Tu pourras réciter après la 3ᵉ écoute.</small></div>
+    const el=view(head+`<div class="inst">Écoute le verset ${k}<small>Suis bien les mots des yeux pendant l'écoute.</small></div>
       <div class="verse-card">${numBadge(k)}${verseBlock(s,k,0,{fr:L.fr})}</div>
       <div class="listen-orb" id="orb"><i class="ring"></i><i class="ring"></i><i class="ring"></i><button class="core" id="play" aria-label="Écouter">▶</button></div>
-      <div class="rounds">${'<i></i>'.repeat(3)}</div><div class="ctrls">${frT}${slowT}</div>
+      <div class="ctrls">${frT}${slowT}</div>
       <button class="btn turq block" id="nx" ${L.heard?'':'disabled'}>Continuer ➜</button>`,'lesson');
     bindToggles(el);const orb=el.querySelector('#orb'),dots=el.querySelectorAll('.rounds i');
     const run=async()=>{const seq=++AU.seq;orb.classList.add('on');el.querySelector('#play').textContent='🔊';let n=0;
-      for(let r=0;r<3;r++){dots.forEach((d,i)=>d.classList.toggle('on',i<r));const ok=await playVerse(s.id,k,seq);if(!ok||seq!==AU.seq)break;n++;dots.forEach((d,i)=>d.classList.toggle('on',i<n));if(r<2){await sleep(900);if(seq!==AU.seq)break;}}
-      orb.classList.remove('on');el.querySelector('#play').textContent='↻';if(n===3){L.heard=true;chime('ok');const b=el.querySelector('#nx');if(b)b.disabled=false;}};
+      {const ok=await playVerse(s.id,k,seq);if(ok&&seq===AU.seq)n=1;}
+      orb.classList.remove('on');el.querySelector('#play').textContent='↻';if(n===1){L.heard=true;chime('ok');const b=el.querySelector('#nx');if(b)b.disabled=false;}};
     el.querySelector('#play').onclick=run;el.querySelector('#nx').innerHTML='🗣️ À moi de réciter ➜';el.querySelector('#nx').onclick=()=>{L.heard=false;next();};
+    return;
+  }
+  if(step.t==='rec'){
+    const list=step.list,m=step.m,one=list.length===1,lastStep=L.i===L.steps.length-1;
+    const finalOK=()=>{if(practice||!DB.data.settings.parentCheck){finishStage();return;}
+      const kp=keypad(4,v=>{if(v===PARENT_CODE){closeOverlay();finishStage();return true;}return false;},'Montre à un parent','Récite devant papa ou maman. Le parent tape son code pour valider.');
+      overlay(`<div class="panel">${kp.html}<button class="btn ghost block" data-x style="margin-top:14px">Je m'entraîne encore</button></div>`,o=>{kp.bind(o);on(o,'[data-x]','click',closeOverlay);});};
+    const onPass=lastStep?finalOK:()=>{chime('ok');next();};
+    const T=one?{0:['Récite en lisant',`Le verset ${k} est écrit en entier.`],deb:['Sans le début','Le début du verset est caché. Touche un trait doré si tu bloques.'],fin:['Sans la fin','La fin du verset est cachée. Touche un trait doré si tu bloques.'],all:['De mémoire !',`Récite le verset ${k} sans regarder.`]}[m]
+      :m===0?['Depuis le début, en lisant',`Récite les versets 1 à ${k} : ils sont tous écrits.`]:[k===n?'Le grand défi !':'Depuis le début, de mémoire',`Récite les versets 1 à ${k} sans regarder.`];
+    const ins=`<div class="inst">${T[0]}<small>${T[1]}</small></div>`;
+    const badges=`<div class="rounds" style="gap:16px;margin:14px 0">${list.map(v=>`<span style="width:56px;height:56px;position:relative;display:inline-block">${numBadge(v).replace('class="num"','style="width:56px;height:56px"')}</span>`).join('')}</div>`;
+    const card=lvl=>m==='all'&&lvl!==0?badges:one?`<div class="verse-card">${numBadge(k)}${verseBlock(s,k,lvl,{})}</div>`:`<div class="chain">${list.map(v=>`<div class="vline" data-v="${v}">${verseBlock(s,v,lvl,{})}</div>`).join('')}</div>`;
+    if(MIC&&!L.reveal){micStep(list,ins,card(m),onPass);return;}
+    const el=view(head+ins+(L.reveal?`<div class="chain">${list.map(v=>`<div class="vline" data-v="${v}">${verseBlock(s,v,0,{})}</div>`).join('')}</div>`:card(m))+(L.reveal?`<div class="inst" style="font-size:1.4rem">Tu l'as bien dit ?</div><div class="rate"><button class="btn coral" data-no>↺ Pas encore</button><button class="btn turq" data-yes>✓ Oui !</button></div>`:`<button class="btn block" data-check>🎧 Vérifier en écoutant</button>`),'lesson');
+    bindToggles(el);bindPeek(el);
+    on(el,'[data-check]','click',()=>{L.reveal=true;render();setTimeout(()=>{const e2=app.firstElementChild;playList(s.id,list,v=>e2.querySelectorAll('.vline').forEach(d=>{const a=+d.dataset.v===v;d.classList.toggle('playing',a);if(a)d.scrollIntoView({block:'center',behavior:'smooth'});}));},50);});
+    on(el,'[data-no]','click',()=>{L.reveal=false;stopAudio();if(one){L.i=0;toast('On réécoute, puis tu réessaies.');}else toast('Réécoute les versets, puis réessaie.');render();});
+    on(el,'[data-yes]','click',()=>{L.reveal=false;stopAudio();onPass();});
     return;
   }
   if(step.t==='repeat'){
@@ -1234,7 +1256,7 @@ SCREENS.lesson=()=>{
         <div class="scorebar"><i style="width:${pct}%" class="${pass?'ok':''}"></i><span>${pct} %</span></div>
         ${coloredLines(s,list,R.ok)}
         ${R.heard?`<div class="heard">J'ai entendu : <span class="ar">${esc(R.heard)}</span></div>`:''}
-        ${pass?`<button class="btn turq block" data-pass>Continuer ➜</button>`:`<div class="rate"><button class="btn" data-listen>🎧 Écouter</button><button class="btn turq" data-retry>🎤 Réessayer</button></div>${list.length===1?`<button class="btn ghost block" data-relearn>↺ Réécouter 3 fois</button>`:''}`}`,'lesson');
+        ${pass?`<button class="btn turq block" data-pass>Continuer ➜</button>`:`<div class="rate"><button class="btn" data-listen>🎧 Écouter</button><button class="btn turq" data-retry>🎤 Réessayer</button></div>${list.length===1?`<button class="btn ghost block" data-relearn>↺ Réécouter le verset</button>`:''}`}`,'lesson');
       bindToggles(el);
       if(pass){sfx('good');say(pick(PRAISE));confetti(70);}else{sfx('bad');say(pick(ENCOURAGE));}
       on(el,'[data-pass]','click',()=>{L.mic=null;onPass();});
@@ -1367,7 +1389,7 @@ SCREENS.parent=()=>{
       <div class="bars">${SURAHS.map(s=>{const x=p.surahs[s.id]||{stage:0};const n=s.v.length;if(!x.stage&&!x.done)return '';return `<span>${s.emo} ${esc(s.fr)}</span><span class="bar"><i style="width:${(x.stage/n*100).toFixed(0)}%"></i></span><span class="small">${x.stage}/${n} v.${x.understood?' · compris':''}${x.quiz?` · quiz ${x.quiz}/10`:''}</span>`;}).join('')||'<span class="note" style="grid-column:1/-1">Pas encore commencé.</span>'}</div>
       <div class="row" style="flex-wrap:wrap"><button class="btn ghost" data-pts="${p.id}" style="min-height:44px;font-size:1rem">+10 points</button><button class="btn ghost" data-del="${p.id}" style="min-height:44px;font-size:1rem">Supprimer…</button></div></div>`;}).join('');
   const el=view(`<div class="topbar"><button class="iconbtn" data-home aria-label="Fermer">✕</button><h2 style="flex:1;text-align:center" class="title-gold">Espace parents</h2><span style="width:48px"></span></div>
-    <div class="panel stack">${sw('parentCheck','Validation par un parent','À la fin de chaque étape, l\'enfant récite devant vous et vous tapez le code.')}${sw('sound','Sons et musique','Petites mélodies quand l\'enfant réussit ou se trompe.')}${sw('voice','Voix qui encourage','Une voix dit « Bravo ! » ou « Essaie encore ».')}${sw('showAr','Afficher l\'arabe','Texte arabe des versets.')}${sw('showPh','Afficher la phonétique','Transcription en lettres latines.')}${sw('showFr','Afficher la traduction','Sens du verset en français.')}${MIC?`<div><b>Exigence du micro</b><div class="note">Part des mots qui doivent être reconnus pour valider.</div><div class="row" style="margin-top:8px;flex-wrap:wrap">${[[0.75,'Souple'],[0.85,'Normale'],[0.95,'Stricte']].map(([v,t])=>`<button class="toggle ${st.micLevel===v?'on':''}" data-lvl="${v}">${t} · ${Math.round(v*100)}%</button>`).join('')}</div></div>`:''}</div>
+    <div class="panel stack">${sw('parentCheck','Validation par un parent','À la fin de chaque étape, l\'enfant récite devant vous et vous tapez le code.')}${sw('sound','Sons et musique','Petites mélodies quand l\'enfant réussit ou se trompe.')}${sw('showAr','Afficher l\'arabe','Texte arabe des versets.')}${sw('showPh','Afficher la phonétique','Transcription en lettres latines.')}${sw('showFr','Afficher la traduction','Sens du verset en français.')}${MIC?`<div><b>Exigence du micro</b><div class="note">Part des mots qui doivent être reconnus pour valider.</div><div class="row" style="margin-top:8px;flex-wrap:wrap">${[[0.7,'Souple'],[0.8,'Normale'],[0.9,'Stricte']].map(([v,t])=>`<button class="toggle ${st.micLevel===v?'on':''}" data-lvl="${v}">${t} · ${Math.round(v*100)}%</button>`).join('')}</div></div>`:''}</div>
     <div class="sec-title">Enfants</div>${kids||'<p class="note">Aucun compte pour l\'instant.</p>'}
     <div class="sec-title">Sauvegarde</div>
     <div class="panel stack"><div class="note">${DB.cloud?'☁️ La progression est enregistrée sur votre compte Claude : elle se retrouve sur vos autres appareils.':'📱 La progression est enregistrée dans ce navigateur. Copiez une sauvegarde de temps en temps.'}</div>
