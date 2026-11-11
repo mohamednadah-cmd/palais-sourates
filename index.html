@@ -1178,13 +1178,13 @@ SCREENS.lesson=()=>{
   }
   if(step.t==='rec'){
     const list=step.list,m=step.m,one=list.length===1,lastStep=L.i===L.steps.length-1;
-    const finalOK=()=>{if(practice||!DB.data.settings.parentCheck){finishStage();return;}
-      const kp=keypad(4,v=>{if(v===PARENT_CODE){closeOverlay();finishStage();return true;}return false;},'Montre à un parent','Récite devant papa ou maman. Le parent tape son code pour valider.');
+    const finalOK=()=>{const whole=k===n;if(practice||(!whole&&!DB.data.settings.parentCheck)){finishStage();return;}
+      const kp=keypad(4,v=>{if(v===PARENT_CODE){closeOverlay();finishStage();return true;}return false;},whole?'Validation de la sourate':'Montre à un parent',whole?`Récite toute la sourate ${esc(s.fr)} devant papa ou maman. Le parent tape son code pour confirmer qu'elle est connue.`:'Récite devant papa ou maman. Le parent tape son code pour valider.');
       overlay(`<div class="panel">${kp.html}<button class="btn ghost block" data-x style="margin-top:14px">Je m'entraîne encore</button></div>`,o=>{kp.bind(o);on(o,'[data-x]','click',closeOverlay);});};
     const onPass=lastStep?finalOK:()=>{chime('ok');next();};
     const T=one?{0:['Récite en lisant',`Le verset ${k} est écrit en entier.`],deb:['Sans le début','Le début du verset est caché. Touche un trait doré si tu bloques.'],fin:['Sans la fin','La fin du verset est cachée. Touche un trait doré si tu bloques.'],all:['De mémoire !',`Récite le verset ${k} sans regarder.`]}[m]
       :m===0?['Depuis le début, en lisant',`Récite les versets 1 à ${k} : ils sont tous écrits.`]:[k===n?'Le grand défi !':'Depuis le début, de mémoire',`Récite les versets 1 à ${k} sans regarder.`];
-    const ins=`<div class="inst">${T[0]}<small>${T[1]}</small></div>`;
+    const ins=`<div class="inst">${T[0]}<small>${T[1]}${lastStep&&k===n&&!practice?' Ensuite, un parent valide la sourate.':''}</small></div>`;
     const badges=`<div class="rounds" style="gap:16px;margin:14px 0">${list.map(v=>`<span style="width:56px;height:56px;position:relative;display:inline-block">${numBadge(v).replace('class="num"','style="width:56px;height:56px"')}</span>`).join('')}</div>`;
     const card=lvl=>m==='all'&&lvl!==0?badges:one?`<div class="verse-card">${numBadge(k)}${verseBlock(s,k,lvl,{})}</div>`:`<div class="chain">${list.map(v=>`<div class="vline" data-v="${v}">${verseBlock(s,v,lvl,{})}</div>`).join('')}</div>`;
     if(MIC&&!L.reveal){micStep(list,ins,card(m),onPass);return;}
