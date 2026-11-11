@@ -901,6 +901,7 @@ const PRAISE=['Bravo !','Excellent !','Super !','Magnifique !','Très bien !','T
 const ENCOURAGE=['Presque ! Essaie encore.','Pas grave, on réessaie !','Tu y es presque !','Courage, recommence !'];
 function say(){}
 function sayOld(txt,delay=450){if(DB.data.settings.voice===false||!window.speechSynthesis)return;setTimeout(()=>{try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(txt);u.lang='fr-FR';u.rate=1.05;u.pitch=1.25;const v=speechSynthesis.getVoices().find(x=>/^fr/i.test(x.lang));if(v)u.voice=v;speechSynthesis.speak(u);}catch(e){}},delay);}
+const micLvl=p=>(p&&typeof p.micLevel==='number')?p.micLevel:DB.data.settings.micLevel;
 const pick=a=>a[Math.random()*a.length|0];
 
 /* ---------- effets ---------- */
@@ -1251,7 +1252,7 @@ SCREENS.lesson=()=>{
   function micStep(list,insHTML,cardHTML,onPass){
     const R=L.mic||(L.mic={st:'idle'});
     if(R.st==='result'){
-      const pass=R.score>=DB.data.settings.micLevel;const pct=Math.round(R.score*100);
+      const pass=R.score>=micLvl(p);const pct=Math.round(R.score*100);
       const el=view(head+`<div class="inst">${pass?'Bravo, c\'est juste !':'Presque !'}<small>${pass?'L\'application a reconnu ta récitation.':'Les mots en rouge n\'ont pas été reconnus.'}</small></div>
         <div class="scorebar"><i style="width:${pct}%" class="${pass?'ok':''}"></i><span>${pct} %</span></div>
         ${coloredLines(s,list,R.ok)}
@@ -1387,9 +1388,10 @@ SCREENS.parent=()=>{
   const kids=d.profiles.map(p=>{const doneN=SURAHS.filter(s=>(p.surahs[s.id]||{}).done).length;
     return `<div class="panel kid"><div class="head"><span class="face">${AV.svg(p.av,{head:true,still:true})}</span><div style="flex:1;min-width:0"><b style="font-family:var(--display);font-size:1.4rem">${esc(p.name)}</b><div class="note">Code secret : <b>${esc(p.pin)}</b> · ${p.points} points (${p.earned||0} gagnés) · ${doneN}/${SURAHS.length} sourates terminées</div></div></div>
       <div class="bars">${SURAHS.map(s=>{const x=p.surahs[s.id]||{stage:0};const n=s.v.length;if(!x.stage&&!x.done)return '';return `<span>${s.emo} ${esc(s.fr)}</span><span class="bar"><i style="width:${(x.stage/n*100).toFixed(0)}%"></i></span><span class="small">${x.stage}/${n} v.${x.understood?' · compris':''}${x.quiz?` · quiz ${x.quiz}/10`:''}</span>`;}).join('')||'<span class="note" style="grid-column:1/-1">Pas encore commencé.</span>'}</div>
+      ${MIC?`<div><b>Exigence du micro</b><div class="note">Part des mots qui doivent être reconnus pour valider une récitation.</div><div class="row" style="margin-top:8px;flex-wrap:wrap">${[[0.6,'Très souple'],[0.7,'Souple'],[0.8,'Normale'],[0.9,'Stricte']].map(([v,t])=>`<button class="toggle ${micLvl(p)===v?'on':''}" data-lvl="${v}" data-kid="${p.id}">${t} · ${Math.round(v*100)} %</button>`).join('')}</div></div>`:''}
       <div class="row" style="flex-wrap:wrap"><button class="btn ghost" data-pts="${p.id}" style="min-height:44px;font-size:1rem">+10 points</button><button class="btn ghost" data-del="${p.id}" style="min-height:44px;font-size:1rem">Supprimer…</button></div></div>`;}).join('');
   const el=view(`<div class="topbar"><button class="iconbtn" data-home aria-label="Fermer">✕</button><h2 style="flex:1;text-align:center" class="title-gold">Espace parents</h2><span style="width:48px"></span></div>
-    <div class="panel stack">${sw('parentCheck','Validation par un parent','À la fin de chaque étape, l\'enfant récite devant vous et vous tapez le code.')}${sw('sound','Sons et musique','Petites mélodies quand l\'enfant réussit ou se trompe.')}${sw('showAr','Afficher l\'arabe','Texte arabe des versets.')}${sw('showPh','Afficher la phonétique','Transcription en lettres latines.')}${sw('showFr','Afficher la traduction','Sens du verset en français.')}${MIC?`<div><b>Exigence du micro</b><div class="note">Part des mots qui doivent être reconnus pour valider.</div><div class="row" style="margin-top:8px;flex-wrap:wrap">${[[0.7,'Souple'],[0.8,'Normale'],[0.9,'Stricte']].map(([v,t])=>`<button class="toggle ${st.micLevel===v?'on':''}" data-lvl="${v}">${t} · ${Math.round(v*100)}%</button>`).join('')}</div></div>`:''}</div>
+    <div class="panel stack">${sw('parentCheck','Validation parent à chaque verset','En plus du micro, vous tapez le code après chaque verset. La validation de fin de sourate est toujours demandée.')}${sw('sound','Sons et musique','Petites mélodies quand l\'enfant réussit ou se trompe.')}${sw('showAr','Afficher l\'arabe','Texte arabe des versets.')}${sw('showPh','Afficher la phonétique','Transcription en lettres latines.')}${sw('showFr','Afficher la traduction','Sens du verset en français.')}</div>
     <div class="sec-title">Enfants</div>${kids||'<p class="note">Aucun compte pour l\'instant.</p>'}
     <div class="sec-title">Sauvegarde</div>
     <div class="panel stack"><div class="note">${DB.cloud?'☁️ La progression est enregistrée sur votre compte Claude : elle se retrouve sur vos autres appareils.':'📱 La progression est enregistrée dans ce navigateur. Copiez une sauvegarde de temps en temps.'}</div>
@@ -1398,7 +1400,7 @@ SCREENS.parent=()=>{
     <p class="note" style="text-align:center">Les points : 5 par verset validé, 10 par sourate apprise.</p>`);
   on(el,'[data-home]','click',()=>{S.hist=[];go('home',{},false);});
   on(el,'[data-set]','click',(e,b)=>{st[b.dataset.set]=!st[b.dataset.set];if(!st.showAr&&!st.showPh)st.showPh=true;save();render();});
-  on(el,'[data-lvl]','click',(e,b)=>{st.micLevel=+b.dataset.lvl;save();render();});
+  on(el,'[data-lvl]','click',(e,b)=>{const p=d.profiles.find(x=>x.id===b.dataset.kid);p.micLevel=+b.dataset.lvl;save();render();toast(`Exigence de ${p.name} : ${Math.round(p.micLevel*100)} %`);});
   on(el,'[data-pts]','click',(e,b)=>{const p=d.profiles.find(x=>x.id===b.dataset.pts);addPoints(p,10);save();render();toast('+10 points');});
   on(el,'[data-del]','click',(e,b)=>{const p=d.profiles.find(x=>x.id===b.dataset.del);overlay(`<div class="panel stack"><h2>Supprimer ${esc(p.name)} ?</h2><p>Toute sa progression sera effacée.</p><div class="row"><button class="btn ghost" data-x style="flex:1">Annuler</button><button class="btn coral" data-y style="flex:1">Supprimer</button></div></div>`,o=>{on(o,'[data-x]','click',closeOverlay);on(o,'[data-y]','click',()=>{d.profiles=d.profiles.filter(x=>x.id!==p.id);save();render();});});});
   on(el,'[data-copy]','click',()=>{const txt=JSON.stringify(d);const ta=el.querySelector('#bk');try{navigator.clipboard.writeText(txt).then(()=>toast('Sauvegarde copiée'),()=>{ta.value=txt;ta.select();toast('Sélectionnez et copiez le texte');});}catch(e){ta.value=txt;ta.select();}});
